@@ -126,8 +126,12 @@ Scan dengan nomor WhatsApp yang mau dipasang. **Gunakan nomor uji coba**, bukan
 nomor bot produksi, agar tidak tabrakan dengan WhatsApp yang sedang jalan.
 
 ### 4. Buka dashboard
-`http://localhost:5577` — login default `VM505` / `X505`
-(segera ganti password di `dashboard/users.json`).
+`http://localhost:5577` — login pakai akun yang kamu buat di `dashboard/users.json`.
+Contoh format akun di file tsb:
+```json
+{ "user": "ganti-user", "passwordHash": "<hash scrypt>", "role": "admin" }
+```
+> Buat akun baru & ganti password sebelum dipakai serius (jangan pakai kredensial lama/default).
 
 ### Opsional: data pengujian
 Kalau mau menguji dengan seeding data (bukan dari produksi), salin contoh dari
@@ -177,7 +181,7 @@ Proses yang dibuat:
    - AI-CS: `admin1` (utama, full fitur), `admin2` (bulk-only), `admin3` (reply-only).
    - AI-ADMIN: slot aktif (default `admin1`) mengirim notifikasi ke 2 grup.
    - BLASTER: `s1`, `s2`, `s3` (pengirim blast massal).
-2. **Buka dashboard** di `http://localhost:5577` (default login `VM505` / `X505` — segera ganti di `dashboard/users.json`).
+2. **Buka dashboard** di `http://localhost:5577` (login pakai akun yang kamu buat di `dashboard/users.json`).
 3. Pastikan **Ollama** aktif sebelum menghidupkan AI-ADMIN.
 
 ---
