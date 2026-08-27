@@ -80,6 +80,74 @@ npm start
 
 ---
 
+## Menjalankan di Lokal (komputer sendiri / dev)
+
+NexBot **tidak menyentuh bot produksi**. Semua session & datanya di folder
+`data/` yang terpisah (kosong saat pertama clone), jadi bot produksi aman.
+
+> ⚠️ **PENTING untuk port**: NexBot memakai port yang SAMA dengan produksi
+> (5591/5592/5588/5577/5610). Kalau kamu jalankan **di mesin yang sama** dengan
+> server produksi, ganti port dulu supaya tidak bentrok (lihat bagian "Ganti
+> port" di bawah). Di laptop kamu sendiri, aman tanpa ganti apa pun.
+
+### 1. Clone & install
+```bash
+git clone https://github.com/IsyaPrasetia/Nexbot.git NexBot
+cd NexBot
+
+# dependensi backend
+npm install
+
+# dependensi + build dashboard
+cd dashboard
+npm install
+npm run build
+cd ..
+```
+
+### 2. Jalankan (mode multi-proses, recommended)
+```bash
+pm2 start ecosystem.config.js
+pm2 status
+```
+
+Atau mode single-process sederhana (semua modul + unified bridge di satu proses):
+```bash
+npm start
+```
+
+### 3. Scan QR
+Tiap modul mencetak QR di terminal dan menyimpan gambar ke `data/qr/`:
+- AI-CS → `cs_qr_admin1.png` / `admin2` / `admin3`
+- AI-ADMIN → `admin_qr_admin1.png` (slot aktif; ganti via dashboard / `/setslot`)
+- BLASTER → QR muncul di log
+
+Scan dengan nomor WhatsApp yang mau dipasang. **Gunakan nomor uji coba**, bukan
+nomor bot produksi, agar tidak tabrakan dengan WhatsApp yang sedang jalan.
+
+### 4. Buka dashboard
+`http://localhost:5577` — login default `VM505` / `X505`
+(segera ganti password di `dashboard/users.json`).
+
+### Opsional: data pengujian
+Kalau mau menguji dengan seeding data (bukan dari produksi), salin contoh dari
+`data/` starter yang sudah di-commit (mis. `database.json`, `daftar_spreadsheet.json`).
+
+---
+
+### Ganti port (hanya kalau jalan bareng produksi/servis lain)
+Semua port diatur sekali di `src/config.js`:
+- `bridge.port` (5610)
+- `cs.port` (5591)
+- `admin.port` (5592)
+- `blast.port` (5588)
+- DASHBOARD di `ecosystem.config.js` (`env.PORT`, default 5577)
+
+Lalu jika dashboard mem-proxy ke port, sesuaikan juga di
+`dashboard/server/index.js` (proksi `/api/csbridge`, `/api/adminbridge`, `/api/blast`).
+
+---
+
 ## Deploy dengan PM2 (Recommended — multi-proses)
 
 Setiap modul jalan sendiri sehingga satu crash tidak menumbangkan yang lain.
