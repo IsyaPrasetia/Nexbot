@@ -6,6 +6,7 @@ data/sessions/
 data/qr/
 data/*/*.jsonl
 data/*/current-slot.json
+data/cs/*.db
 
 # Jangan commit kredensial / sesi WhatsApp
 data/admin/credentials.json
