@@ -48,13 +48,12 @@ export default function AdminPage({ proc, net, showToast, onRequestRestart }) {
 
   const loadAll = async () => {
     try {
-      const [dbRes, ssRes, csRes, cdRes, waRes, slotRes] = await Promise.all([
+      const [dbRes, ssRes, csRes, cdRes, waRes] = await Promise.all([
         adminApi('/database'),
         adminApi('/spreadsheets'),
         adminApi('/crawl-status'),
         adminApi('/countdown'),
-        adminApi('/status'),
-        adminApi('/slot')
+        adminApi('/status')
       ]);
       setDb(dbRes.database || []);
       setArchive(dbRes.archive || []);
@@ -62,7 +61,13 @@ export default function AdminPage({ proc, net, showToast, onRequestRestart }) {
       setCrawlStatus(csRes);
       setCountdown(cdRes.upcoming || []);
       setWaStatus(waRes);
-      setSlotInfo(slotRes);
+      setSlotInfo(null);
+      try {
+        const slotRes = await adminApi('/slot');
+        setSlotInfo(slotRes.slots ? slotRes : { slot: slotRes.slot, slots: slotRes.slots });
+      } catch (_) {
+        setSlotInfo(null);
+      }
     } catch (e) {
       showToast('error', 'Gagal muat data: ' + e.message);
     } finally {
