@@ -231,4 +231,4 @@ Ubah di sini, efek ke seluruh modul — tidak perlu edit per-file.
 
 ## Lisensi
 
-MIT © mpras. Gunakan secara bertanggung jawab; hormati ketentuan WhatsApp.
+MIT © Prasetia. Gunakan secara bertanggung jawab; hormati ketentuan WhatsApp.
