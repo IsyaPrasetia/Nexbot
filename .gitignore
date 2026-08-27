@@ -12,6 +12,16 @@ data/admin/credentials.json
 data/**/session_*/
 data/**/auth_old_*/
 
+# Dashboard runtime (auth & state, build artifacts)
+dashboard/node_modules/
+dashboard/dist/
+dashboard/file-backups/
+dashboard/users.json
+dashboard/sessions.json
+dashboard/login-fails.json
+dashboard/login-log.jsonl
+dashboard/incidents.json
+
 # Originals / backups
 **/*.original.js
 **/adminbackup.js
