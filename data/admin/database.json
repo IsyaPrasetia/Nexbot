@@ -1,0 +1,82 @@
+[
+  {
+    "entitas": "PSI",
+    "timestamp": "2026-08-10T04:13:08.170Z",
+    "namaFile": "registrasi-PSI-Management of Septic and Cardiogenic Shock.pdf",
+    "namaAcara": "Management Of Septic And Cardiogenic Shock",
+    "tanggalAcara": "5 September 2026",
+    "statusWebsite": "SUDAH MASUK"
+  },
+  {
+    "entitas": "PSI",
+    "timestamp": "2026-08-10T04:13:21.187Z",
+    "namaFile": "registrasi-PSI-Management of Hemorrhagic Shock.pdf",
+    "namaAcara": "Management Of Hemorrhagic Shock",
+    "tanggalAcara": "6 September 2026",
+    "statusWebsite": "SUDAH MASUK"
+  },
+  {
+    "entitas": "Arteria",
+    "timestamp": "2026-08-10T07:06:16.907Z",
+    "namaFile": "registrasi-Arteria-Manajemen Perawatan Luka Kronik.pdf",
+    "namaAcara": "Manajemen Perawatan Luka Kronik",
+    "tanggalAcara": "23 Agustus 2026",
+    "statusWebsite": "SUDAH MASUK"
+  },
+  {
+    "entitas": "Arteria",
+    "timestamp": "2026-08-10T07:06:47.579Z",
+    "namaFile": "rv-registrasi-Arteria-Luka Kronik Diabetic Foot Ulcer.pdf",
+    "namaAcara": "Luka Kronik Diabetic Foot Ulcer",
+    "tanggalAcara": "31 Agustus 2026",
+    "statusWebsite": "SUDAH MASUK"
+  },
+  {
+    "entitas": "Arteria",
+    "timestamp": "2026-08-10T07:07:17.948Z",
+    "namaFile": "rv-registrasi-Arteria-Venous Ulcer.pdf",
+    "namaAcara": "Venous Ulcer",
+    "tanggalAcara": "24 Agustus 2026",
+    "statusWebsite": "SUDAH MASUK"
+  },
+  {
+    "entitas": "Arteria",
+    "timestamp": "2026-08-10T07:07:48.495Z",
+    "namaFile": "rv-registrasi-Arteria-Luka Kronik Kanker Payudara.pdf",
+    "namaAcara": "Luka Kronik Kanker Payudara",
+    "tanggalAcara": "30 Agustus 2026",
+    "statusWebsite": "SUDAH MASUK"
+  },
+  {
+    "entitas": "Arteria",
+    "timestamp": "2026-08-20T07:54:36.500Z",
+    "namaFile": "registrasi-Arteria-Medication Safety.pdf",
+    "namaAcara": "Medication Safety",
+    "tanggalAcara": "26 September 2026",
+    "statusWebsite": "BELUM MASUK"
+  },
+  {
+    "entitas": "Arteria",
+    "timestamp": "2026-08-20T07:55:07.117Z",
+    "namaFile": "registrasi-Arteria-Mass Casualty Incident.pdf",
+    "namaAcara": "Mass Casualty Incident",
+    "tanggalAcara": "20 September 2026",
+    "statusWebsite": "BELUM MASUK"
+  },
+  {
+    "entitas": "PSI",
+    "timestamp": "2026-08-22T11:50:51.586Z",
+    "namaFile": "Webinar Internasional Chronic Wound Care Management Diabetic Wound and Pressure Injury with an Evidence-Based Clinical Approach.pdf",
+    "namaAcara": "Webinar Internasional Chronic Wound Care Management Diabetic Wound And Pressure Injury With An Evidence Based Clinical Approach",
+    "tanggalAcara": "13 September 2026",
+    "statusWebsite": "BELUM MASUK"
+  },
+  {
+    "entitas": "PSI",
+    "timestamp": "2026-08-22T11:51:06.088Z",
+    "namaFile": "Webinar Internasional Advanced Wound Management in Emergency Care Burn and Traumatic Wound.pdf",
+    "namaAcara": "Webinar Internasional Advanced Wound Management In Emergency Care Burn And Traumatic Wound",
+    "tanggalAcara": "12 September 2026",
+    "statusWebsite": "BELUM MASUK"
+  }
+]

@@ -1,0 +1,28 @@
+# Node
+node_modules/
+
+# Runtime data (sessions, QR, uploads, logs, DBs)
+data/sessions/
+data/qr/
+data/*/*.jsonl
+data/*/current-slot.json
+
+# Jangan commit kredensial / sesi WhatsApp
+data/admin/credentials.json
+data/**/session_*/
+data/**/auth_old_*/
+
+# Originals / backups
+**/*.original.js
+**/adminbackup.js
+**/CSBackup.js
+**/cs_corrupted_*.js
+
+# Logs
+*.log
+npm-debug.log*
+pm2-*.log
+
+# OS
+Thumbs.db
+.DS_Store
