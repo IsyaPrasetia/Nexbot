@@ -28,7 +28,7 @@
   },
   "allowScripts": {
     "@whiskeysockets/baileys@7.0.0-rc14": true,
-    "protobufjs@7.6.5": true,
-    "pdf-parse-fork@1.2.0": true
+    "pdf-parse-fork@1.2.0": true,
+    "protobufjs@7.6.6": true
   }
 }

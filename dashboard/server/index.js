@@ -19,19 +19,19 @@ const DATASETS = [
     id: 'grup-webinar',
     label: 'Grup Webinar Terdaftar',
     desc: 'Grup WhatsApp penerima broadcast (!bulkkirim) di AI-CS',
-    file: 'D:\\bot-multi-admin\\grup_webinar.json'
+    file: 'D:\\Nexbot\\data\\cs\\grup_webinar.json'
   },
   {
     id: 'berkas-terpantau',
     label: 'Riwayat Berkas PSI & Arteria',
     desc: 'Status pemrosesan PDF dan apakah sudah masuk website',
-    file: 'D:\\ai-admin-bot\\database.json'
+    file: 'D:\\Nexbot\\data\\admin\\database.json'
   },
   {
     id: 'statistik-menu',
     label: 'Statistik Menu Bot CS',
     desc: 'Rekap pilihan menu peserta (tracking_menu.db AI-CS)',
-    file: 'D:\\bot-multi-admin\\tracking_menu.db',
+    file: 'D:\\Nexbot\\data\\cs\\tracking_menu.db',
     ndjson: true
   }
 ];
@@ -895,18 +895,19 @@ app.get('/api/network', async (req, res) => {
 });
 
 // ================= File Manager (whitelist 2 folder bot) =================
-const FILE_ROOTS = ['D:\\ai-admin-bot', 'D:\\bot-multi-admin'];
+const FILE_ROOTS = ['D:\\Nexbot\\src', 'D:\\Nexbot\\data'];
 const EDIT_EXTS = ['.js', '.json', '.txt', '.md', '.html', '.css', '.env', '.log'];
 const BACKUP_DIR = path.join(__dirname, '..', 'file-backups');
 const MAX_EDIT_SIZE = 3 * 1024 * 1024;
 
 function isPathAllowed(p) {
   const rp = path.resolve(String(p));
-  const inRoot = FILE_ROOTS.some((root) => rp.toLowerCase().startsWith(root.toLowerCase() + path.sep));
-  if (!inRoot) return false;
-  const rel = rp.slice(FILE_ROOTS[0].length > rp.length ? 0 : Math.min(...FILE_ROOTS.map((r) => r.length)));
-  const segs = rp.split(/[\\/]+/);
-  for (const s of segs) {
+  const root = FILE_ROOTS.find(
+    (r) => rp.toLowerCase() === r.toLowerCase() || rp.toLowerCase().startsWith(r.toLowerCase() + path.sep)
+  );
+  if (!root) return false;
+  const rel = rp.slice(root.length);
+  for (const s of rel.split(/[\\/]+/)) {
     const low = s.toLowerCase();
     if (low.startsWith('session_') || low.startsWith('.wwebjs') || (low.startsWith('.') && s !== '.')) return false;
     if (low === 'node_modules' || low === 'file-backups') return false;
@@ -985,7 +986,7 @@ app.post('/api/file/save', async (req, res) => {
     try { await fsp.copyFile(p, path.join(BACKUP_DIR, backupName)); } catch {}
     await fsp.writeFile(p, text);
     appendLog({ event: 'file-saved', file: p, backup: backupName, by: req.dashboardUser });
-    res.json({ ok: true, message: `Tersimpan. Backup lama: ${backupName}`, needs_restart: ['.js'].includes(ext), proc: /cs\.js$/i.test(p) ? 'AI-CS' : /admin\.js$/i.test(p) ? 'AI-ADMIN' : null });
+    res.json({ ok: true, message: `Tersimpan. Backup lama: ${backupName}`, needs_restart: ['.js'].includes(ext), proc: /modules[\\/]cs[\\/]/.test(p) ? 'AI-CS' : /modules[\\/]admin[\\/]/.test(p) ? 'AI-ADMIN' : null });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -993,8 +994,8 @@ app.post('/api/file/save', async (req, res) => {
 
 // ================= Bot QR bridge (AI-CS / AI-ADMIN) =================
 const BOTQR_SOURCES = {
-  cs: { dir: 'D:\\bot-multi-admin', pattern: /^qr_admin\d+\.png$/i },
-  admin: { dir: 'D:\\ai-admin-bot', pattern: /^qr_bot\.png$/i }
+  cs: { dir: 'D:\\Nexbot\\data\\qr', pattern: /^cs_qr_admin\d+\.png$/i, prefix: 'cs_qr_' },
+  admin: { dir: 'D:\\Nexbot\\data\\qr', pattern: /^admin_qr_admin\d+\.png$/i, prefix: 'admin_qr_' }
 };
 
 app.get('/api/botqr/:id', async (req, res) => {
@@ -1003,7 +1004,7 @@ app.get('/api/botqr/:id', async (req, res) => {
   const slotFilter = String(req.query.slot || '').toLowerCase().match(/^admin\d+$/);
   try {
     let files = (await fsp.readdir(src.dir)).filter((f) => src.pattern.test(f));
-    if (slotFilter) files = files.filter((f) => f.toLowerCase() === `qr_${slotFilter[0]}.png`);
+    if (slotFilter) files = files.filter((f) => f.toLowerCase() === `${src.prefix}${slotFilter[0]}.png`);
     let newest = null;
     for (const f of files) {
       const st = await fsp.stat(path.join(src.dir, f));

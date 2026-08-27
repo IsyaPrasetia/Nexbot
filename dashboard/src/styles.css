@@ -2905,8 +2905,8 @@ html[data-theme='light'] .bot-form-area::placeholder {
 }
 
 .wa-session-qr .qr-mini {
-  width: 140px;
-  height: 140px;
+  width: 210px;
+  height: 210px;
 }
 
 .wa-session-qr .qr-mini.conn {
@@ -2951,7 +2951,7 @@ html[data-theme='light'] .bot-form-area::placeholder {
 
 @media (max-width: 600px) {
   .wa-session-body { flex-direction: column; align-items: center; }
-  .wa-session-qr .qr-mini { width: 180px; height: 180px; }
+  .wa-session-qr .qr-mini { width: 175px; height: 175px; }
 }
 
 /* ===== AI-ADMIN SLOT SWITCHER ===== */

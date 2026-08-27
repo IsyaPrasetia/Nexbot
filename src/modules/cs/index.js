@@ -238,9 +238,9 @@ async function jalankanBotAdmin(namaAdmin, isBulkOnly = false, isReplyOnly = fal
             console.log(`🔌 Koneksi Bot ${namaAdmin} terputus (code: ${statusCode}). Reconnect otomatis: ${shouldReconnect}`);
             if (shouldReconnect) {
                 reconnectCount[namaAdmin] = (reconnectCount[namaAdmin] || 0) + 1;
-                const delay = 10000 + ((reconnectCount[namaAdmin] - 1) * 5000);
+                const delay = Math.min(20000 + ((reconnectCount[namaAdmin] - 1) * 10000), 60000);
                 console.log(`⏳ Reconnect ${namaAdmin} dalam ${delay/1000} detik (attempt ${reconnectCount[namaAdmin]})...`);
-                setTimeout(() => { jalankanBotAdmin(namaAdmin, isBulkOnly); }, delay);
+                setTimeout(() => { jalankanBotAdmin(namaAdmin, isBulkOnly, isReplyOnly); }, delay);
             }
         } else if (connection === 'open') {
             connectedAdmins[namaAdmin] = true;

@@ -3,11 +3,11 @@ import { fetchFileList, readFile, saveFile } from '../api.js';
 import { ScriptIcon, SaveIcon, FolderIcon, AlertIcon } from './Icons.jsx';
 
 const QUICK_FILES = [
-  { label: 'AI-CS · cs.js', path: 'D:\\bot-multi-admin\\cs.js' },
-  { label: 'AI-ADMIN · admin.js', path: 'D:\\ai-admin-bot\\admin.js' },
-  { label: 'CS · Grup Webinar (JSON)', path: 'D:\\bot-multi-admin\\grup_webinar.json' },
-  { label: 'ADMIN · Database Berkas', path: 'D:\\ai-admin-bot\\database.json' },
-  { label: 'PM2 · bot.config.js', path: 'D:\\Admin\\bot.config.js' }
+  { label: 'AI-CS · cs/index.js', path: 'D:\\Nexbot\\src\\modules\\cs\\index.js' },
+  { label: 'AI-ADMIN · admin/index.js', path: 'D:\\Nexbot\\src\\modules\\admin\\index.js' },
+  { label: 'CS · Grup Webinar (JSON)', path: 'D:\\Nexbot\\data\\cs\\grup_webinar.json' },
+  { label: 'ADMIN · Database Berkas', path: 'D:\\Nexbot\\data\\admin\\database.json' },
+  { label: 'Konfigurasi Terpusat', path: 'D:\\Nexbot\\src\\config.js' }
 ];
 
 export default function FileEditor({ showToast, locked, onNeedUnlock, onRequestRestart }) {
@@ -71,7 +71,7 @@ export default function FileEditor({ showToast, locked, onNeedUnlock, onRequestR
 
   const dirty = openPath && content !== savedContent;
   const fileName = openPath ? openPath.split('\\').pop() : '';
-  const needsRestart = dirty === false && openPath && /\.js$/i.test(openPath) && meta && ['AI-CS', 'AI-ADMIN'].some((n) => openPath.toLowerCase().includes(n === 'AI-CS' ? 'bot-multi' : 'ai-admin'));
+  const needsRestart = dirty === false && openPath && /\.js$/i.test(openPath) && meta && /modules[\\/](cs|admin)[\\/]/.test(openPath);
 
   return (
     <div className="files-page">
@@ -96,7 +96,7 @@ export default function FileEditor({ showToast, locked, onNeedUnlock, onRequestR
           </h4>
           <div className="folder-chips">
             <button type="button" className={`btn btn-outline btn-sm ${!browseDir ? 'active-dir' : ''}`} onClick={() => loadList(null)}>Root</button>
-            {['D:\\ai-admin-bot', 'D:\\bot-multi-admin'].map((r) => (
+            {['D:\\Nexbot\\src', 'D:\\Nexbot\\data'].map((r) => (
               <button key={r} type="button" className={`btn btn-outline btn-sm ${browseDir === r ? 'active-dir' : ''}`} onClick={() => loadList(r)}>
                 {r.split('\\').pop()}
               </button>

@@ -3,7 +3,7 @@ import { fetchBotQr } from '../api.js';
 import { formatBytes, formatUptime } from '../format.js';
 import {
   QrIcon, ImageIcon, AlertIcon, CopyIcon, ServerIcon,
-  PlusIcon, ZapIcon, CpuIcon
+  ZapIcon, CpuIcon
 } from './Icons.jsx';
 import MenuEditorCard from './MenuEditorCard.jsx';
 
@@ -99,7 +99,7 @@ export default function BotPage({ kind, label, proc, net, showToast, onRequestRe
             <div className="meta-item"><span className="meta-label">Uptime</span><span className="meta-value">{formatUptime(proc?.uptime_ms)}</span><span className="meta-sub">sejak restart terakhir</span></div>
             <div className="meta-item"><span className="meta-label">Memori</span><span className="meta-value">{formatBytes(proc?.memory || 0)}</span><span className="meta-sub">RAM proses</span></div>
             <div className="meta-item"><span className="meta-label">Restart</span><span className="meta-value">{proc?.restarts ?? '-'}x</span><span className="meta-sub">total sejak daftar</span></div>
-            <div className="meta-item"><span className="meta-label">Folder</span><span className="meta-value" style={{ fontSize: 11 }}>{kind === 'cs' ? 'bot-multi-admin' : 'ai-admin-bot'}</span><span className="meta-sub">edit via tab Files</span></div>
+            <div className="meta-item"><span className="meta-label">Folder</span><span className="meta-value" style={{ fontSize: 11 }}>{kind === 'cs' ? 'src/modules/cs' : 'src/modules/admin'}</span><span className="meta-sub">edit via tab Files</span></div>
           </div>
           {kind === 'admin' && net && net.ollama && (
             <div style={{ marginTop: 10 }}>
@@ -139,7 +139,7 @@ export default function BotPage({ kind, label, proc, net, showToast, onRequestRe
           </div>
         </section>
       ) : (
-        <CsMultiSlotSection slots={slots} showToast={showToast} online={online} procOnline={online} />
+        <CsSlotSwitcher slots={slots} online={online} showToast={showToast} />
       )}
 
       {/* ===== KONSEP PESAN LIVE ===== */}
@@ -277,114 +277,154 @@ function BulkGrupCard({ showToast }) {
   );
 }
 
-function CsMultiSlotSection({ slots, showToast, online }) {
-  const nextName = (() => {
-    let n = 4;
-    const taken = new Set((slots || []).map((s) => s.slot));
-    while (taken.has('admin' + n)) n += 1;
-    return 'admin' + n;
-  })();
-
-  const doSpawn = () => {
-    bridgeApi('/spawn', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: nextName })
-    }).then((r) => {
-      showToast('success', r.message);
-    }).catch((e) => showToast('error', e.message));
-  };
-
-  return (
-    <section className="card bot-session">
-      <div className="ws-hero ws-hero-wa">
-        <div className="ws-badge"><QrIcon size={22} /></div>
-        <div className="ws-hero-text">
-          <h3>Nomor WhatsApp AI-CS</h3>
-          <p>Scan saat sesi logout. Tambah pengguna baru kapan saja.</p>
-        </div>
-        <span className={`ws-pill ${connectedCount(slots) > 0 ? 'on' : ''}`}>{connectedCount(slots)}/{(slots || []).length} AKTIF</span>
-      </div>
-
-      <div className="slots-grid">
-        {(slots || []).map((s) => (
-          <QrSlotImg key={s.slot} kind="cs" slot={s.slot} connected={s.connected} qrFresh={s.qr_fresh} ageMin={s.qr_age_min} online={online} />
-        ))}
-        <button type="button" className="spawn-card" disabled={!online} onClick={doSpawn}>
-          <PlusIcon size={22} />
-          <b>Tambah Pengguna</b>
-          <small>{nextName}</small>
-        </button>
-      </div>
-    </section>
-  );
-}
-
 function connectedCount(slots) {
   return (slots || []).filter((s) => s.connected).length;
 }
 
-function QrSlotImg({ kind, slot, connected, qrFresh, ageMin, online }) {
+function CsSlotSwitcher({ slots, online, showToast }) {
+  const [active, setActive] = useState(null);
   const [qr, setQr] = useState(null);
+  const [spawning, setSpawning] = useState(false);
   const [resetting, setResetting] = useState(false);
 
+  const list = slots || [];
+
   useEffect(() => {
-    if (connected || !online) return undefined;
+    if (!list.length) { setActive(null); return; }
+    setActive((cur) => (cur && list.some((s) => s.slot === cur) ? cur : list[0].slot));
+  }, [list.map((s) => s.slot).join(',')]);
+
+  const activeSlot = list.find((s) => s.slot === active) || null;
+  const connected = !!(activeSlot && activeSlot.connected);
+
+  useEffect(() => {
+    if (!online || !active || connected) { setQr(null); return undefined; }
     let alive = true;
-    const f = () => fetch(`/api/botqr/${kind}?slot=${slot}`)
+    const f = () => fetch(`/api/botqr/cs?slot=${active}`)
       .then((r) => r.json())
       .then((j) => { if (alive && j.fresh !== false) setQr(j.qr || null); })
       .catch(() => {});
     f();
-    const t = setInterval(f, 8000);
+    const t = setInterval(f, 3000);
     return () => { alive = false; clearInterval(t); };
-  }, [kind, slot, connected, online]);
+  }, [active, online, connected]);
+
+  const nextName = (() => {
+    let n = 1;
+    const taken = new Set(list.map((s) => s.slot));
+    while (taken.has('admin' + n)) n += 1;
+    return 'admin' + n;
+  })();
+
+  const doSpawn = async () => {
+    setSpawning(true);
+    try {
+      const r = await bridgeApi('/spawn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: nextName })
+      });
+      showToast('success', r.message || `${nextName} ditambahkan`);
+      setActive(nextName);
+    } catch (e) {
+      showToast('error', e.message);
+    } finally {
+      setSpawning(false);
+    }
+  };
 
   const doReset = async () => {
     setResetting(true);
     try {
-      const r = await fetch('/api/csbridge/reset', {
+      const r = await bridgeApi('/reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slot })
+        body: JSON.stringify({ slot: active })
       });
-      const j = await r.json();
-      if (j.ok) {
-        setQr(null);
-        window.dispatchEvent(new Event('refresh-status'));
-      }
-    } catch {}
-    setResetting(false);
+      showToast('success', r.message || `Sesi ${active} dihapus`);
+      setQr(null);
+    } catch (e) {
+      showToast('error', e.message);
+    } finally {
+      setResetting(false);
+    }
   };
 
   return (
-    <div className={`qr-slot ${connected ? 'conn' : ''}`}>
-      <div className="qr-slot-head">
-        <b>Nomor {slot.replace('admin', '')}</b>
-        <span className={`tag ${connected ? 'tag-ok' : qrFresh ? 'tag-info' : 'tag-dim'}`}>
-          {connected ? 'TERSAMBUUNG' : qrFresh ? 'SCAN QR' : 'OFFLINE'}
-        </span>
+    <section className="card wa-session-card" style={{ marginTop: 14 }}>
+      <div className="blast-card-head">
+        <h3><QrIcon size={15} /> Nomor WhatsApp AI-CS</h3>
+        <span className={`ws-pill ${connectedCount(list) > 0 ? 'on' : ''}`}>{connectedCount(list)}/{list.length} AKTIF</span>
       </div>
-      <div className="qr-mini">
-        {!online ? (
-          <div className="qr-empty">Proses mati</div>
-        ) : connected ? (
-          <div className="qr-empty">Sudah masuk<br />ke WhatsApp<br />✓</div>
-        ) : qr ? (
-          <img src={qr} alt={'QR ' + slot} />
-        ) : (
-          <div className="qr-empty">Menunggu QR...<br />refresh otomatis</div>
-        )}
-      </div>
-      {connected && (
-        <div className="qr-slot-foot">
-          <span className="tag tag-ok" style={{ fontSize: 9, padding: '1px 5px' }}>+{slot.replace('admin', '')}</span>
-          <button className="btn btn-ghost btn-sm" disabled={resetting} onClick={doReset}>
-            {resetting ? 'Reset...' : 'Reset sesi ini'}
-          </button>
+      {!online && (
+        <div className="banner banner-warn" style={{ margin: '0 14px 10px' }}>
+          <AlertIcon size={13} /> Proses mati — QR tidak muncul. Start dulu dari tab Monitor.
         </div>
       )}
-    </div>
+      <div className="wa-session-body">
+        <div className="wa-session-qr">
+          {connected ? (
+            <div className="qr-mini conn">
+              <div className="qr-empty">Sudah masuk<br />ke WhatsApp<br />✓</div>
+            </div>
+          ) : (activeSlot && qr) ? (
+            <div className="qr-mini">
+              <img src={qr} alt={'QR ' + active} />
+            </div>
+          ) : (
+            <div className="qr-mini">
+              <div className="qr-empty">{online ? (active ? 'Menunggu QR...' : 'Pilih nomor') : ''}<br />refresh otomatis</div>
+            </div>
+          )}
+        </div>
+        <div className="wa-session-info">
+          <div className="wa-session-status">
+            <span className={`tag ${connected ? 'tag-ok' : activeSlot && activeSlot.qr_fresh ? 'tag-info' : 'tag-dim'}`}>
+              {connected ? 'TERSAMBUUNG' : activeSlot && activeSlot.qr_fresh ? 'SCAN QR' : 'OFFLINE'}
+            </span>
+            {!connected && activeSlot && activeSlot.qr_fresh && (
+              <span className="tag tag-info" style={{ fontSize: 10 }}>QR BARU SIAP SCAN</span>
+            )}
+          </div>
+          <div className="wa-slot-row">
+            <span className="wa-slot-label">Nomor:</span>
+            <div className="wa-slot-chips">
+              {list.map((s) => (
+                <button
+                  key={s.slot}
+                  className={`wa-slot-chip ${s.slot === active ? 'active' : ''}`}
+                  onClick={() => setActive(s.slot)}
+                  title={`Nomor ${s.slot.replace('admin', '')} (${s.slot})`}
+                >
+                  {s.slot.replace('admin', '')}
+                </button>
+              ))}
+              <button
+                className="wa-slot-chip add"
+                disabled={!online || spawning}
+                onClick={doSpawn}
+                title={`Tambah nomor baru (${nextName})`}
+              >
+                + {spawning ? '...' : nextName.replace('admin', '')}
+              </button>
+            </div>
+          </div>
+          <div className="wa-session-detail">
+            <span>{connected ? 'Sudah masuk ke WhatsApp ✓' : 'Scan QR untuk login'}</span>
+            <span className="wa-session-sub">
+              {connected ? 'Bot menerima pesan normal.' : 'QR berganti sekitar 15-20 detik — scan segera.'}
+            </span>
+          </div>
+          {connected && (
+            <div className="control-row" style={{ marginTop: 8 }}>
+              <button className="btn btn-outline btn-sm" disabled={resetting} onClick={doReset}>
+                {resetting ? 'Menghapus...' : 'Reset sesi ini'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
