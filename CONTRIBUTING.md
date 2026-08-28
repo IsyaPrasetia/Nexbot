@@ -23,8 +23,16 @@ di `src/config.js`.
    npm start
    ```
 
-> ⚠️ Jangan pernah commit isi `data/` (session WhatsApp, QR, DB, kredensial) —
+> ⚠️ Jangan pernah commit isi `data/` (session WhatsApp, QR, DB, kredensial):
 > sudah dijaga oleh `.gitignore`.
+
+## Disclaimer (Tanggung Jawab Hukum)
+
+- Penggunaan repo ini sepenuhnya **tanggung jawab individu masing-masing**.
+- Anda wajib memastikan setiap penggunaan **sesuai dengan hukum dan peraturan yang berlaku** di wilayah Anda.
+- **Kami tidak memfasilitasi, menangani, maupun bertanggung jawab** atas pelanggaran hukum yang terjadi akibat penggunaan repo ini.
+- Penyalahgunaan untuk aktivitas ilegal, termasuk spam massal tanpa izin, penipuan, *phishing*, atau pelanggaran Syarat Layanan WhatsApp, sepenuhnya menjadi tanggung jawab Anda.
+- Repo ini disediakan apa adanya (**as-is**), tanpa jaminan apa pun.
 
 ## Pedoman Kontribusi
 
@@ -42,7 +50,7 @@ buka PR dari branch fitur. Jelaskan *kenapa* fitur ini dibutuhkan.
 - Ikuti gaya kode yang sudah ada (tidak ada formatter ketat; konsisten = kunci).
 - Jangan menambah dependensi tanpa alasan jelas.
 - Nama variabel/fungsi: Indonesia atau English, tapi **konsisten** di satu file.
-- Path/folder harus lewat `src/config.js` — jangan hardcode.
+- Path/folder harus lewat `src/config.js` : jangan hardcode.
 
 ### Commit
 - Gaya pesan commit konvensional (ringkas): `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`.

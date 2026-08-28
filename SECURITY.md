@@ -38,6 +38,14 @@ Proyek ini menangani **kredensial sesi WhatsApp** dan **data pengguna**
 mengekspos data tersebut (logging, API bridge, dashboard proxy, path traversal
 di file server) harus di-review ekstra.
 
+## Disclaimer (Tanggung Jawab Hukum)
+
+- Penggunaan repo ini sepenuhnya **tanggung jawab individu masing-masing**.
+- Anda wajib memastikan setiap penggunaan **sesuai dengan hukum dan peraturan yang berlaku** di wilayah Anda.
+- **Kami tidak memfasilitasi, menangani, maupun bertanggung jawab** atas pelanggaran hukum yang terjadi akibat penggunaan repo ini.
+- Penyalahgunaan untuk aktivitas ilegal, termasuk spam massal tanpa izin, penipuan, *phishing*, atau pelanggaran Syarat Layanan WhatsApp, sepenuhnya menjadi tanggung jawab Anda.
+- Repo ini disediakan apa adanya (**as-is**), tanpa jaminan apa pun.
+
 ## Praktik aman untuk kontributor
 
 - Jangan commit kredensial, session auth, atau token apa pun.

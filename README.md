@@ -1,6 +1,6 @@
 # NexBot
 
-**NexBot** — Platform kontrol bot WhatsApp berbasis **Baileys** (multi-device WebSocket, bukan `whatsapp-web.js`). Satu inti (core) yang dipakai ulang oleh banyak bot/modul, satu dashboard untuk mengontrol semuanya.
+**NexBot** : Platform kontrol bot WhatsApp berbasis **Baileys** (multi-device WebSocket, bukan `whatsapp-web.js`). Satu inti (core) yang dipakai ulang oleh banyak bot/modul, satu dashboard untuk mengontrol semuanya.
 
 Proyek ini mengonsolidasikan 4 aplikasi terpisah menjadi **satu repo & satu mekanisme**:
 
@@ -18,19 +18,19 @@ Proyek ini mengonsolidasikan 4 aplikasi terpisah menjadi **satu repo & satu meka
 - Penggunaan repo ini sepenuhnya **tanggung jawab individu masing-masing**.
 - Anda wajib memastikan setiap penggunaan **sesuai dengan hukum dan peraturan yang berlaku** di wilayah Anda.
 - **Kami tidak memfasilitasi, menangani, maupun bertanggung jawab** atas pelanggaran hukum yang terjadi akibat penggunaan repo ini.
-- Penyalahgunaan untuk aktivitas ilegal — termasuk spam massal tanpa izin, penipuan, *phishing*, atau pelanggaran Syarat Layanan WhatsApp — sepenuhnya menjadi tanggung jawab Anda.
+- Penyalahgunaan untuk aktivitas ilegal : termasuk spam massal tanpa izin, penipuan, *phishing*, atau pelanggaran Syarat Layanan WhatsApp : sepenuhnya menjadi tanggung jawab Anda.
 - Repo ini disediakan apa adanya (**as-is**), tanpa jaminan apa pun.
 
 ---
 
 ## Fitur Utama
 
-- **Satu core Baileys** (`src/core/`) — `session.js`, `manager.js`, `bridge.js`, `paths.js`. Kode koneksi/session/QR/reconnect dipakai bersama, bukan ditulis ulang per bot.
-- **Konfigurasi terpusat** (`src/config.js`) — semua port, path data, grup, timing dalam satu file.
-- **Multi-slot** — AI-CS sudah multi-admin; AI-ADMIN kini juga bisa diganti nomornya dari dashboard (slot `admin1/admin2/admin3`).
-- **Slot utama = `admin1`** — bot pertama yang aktif; sisanya slot tambahan.
-- **Unified bridge** (`src/core/bridge.js`) — satu port (default `5610`) dengan prefix `/cs`, `/admin`, `/blast`. Bisa dipakai bila ingin menjalankan semua modul dalam satu proses.
-- **Dashboard** — monitor PM2, log, insiden, data bot, login, tunel Cloudflare, editor file, dengan lock/session system.
+- **Satu core Baileys** (`src/core/`) : `session.js`, `manager.js`, `bridge.js`, `paths.js`. Kode koneksi/session/QR/reconnect dipakai bersama, bukan ditulis ulang per bot.
+- **Konfigurasi terpusat** (`src/config.js`) : semua port, path data, grup, timing dalam satu file.
+- **Multi-slot** : AI-CS sudah multi-admin; AI-ADMIN kini juga bisa diganti nomornya dari dashboard (slot `admin1/admin2/admin3`).
+- **Slot utama = `admin1`** : bot pertama yang aktif; sisanya slot tambahan.
+- **Unified bridge** (`src/core/bridge.js`) : satu port (default `5610`) dengan prefix `/cs`, `/admin`, `/blast`. Bisa dipakai bila ingin menjalankan semua modul dalam satu proses.
+- **Dashboard** : monitor PM2, log, insiden, data bot, login, tunel Cloudflare, editor file, dengan lock/session system.
 
 ---
 
@@ -55,7 +55,7 @@ NexBot/
 │       ├── admin/           # AI-ADMIN
 │       └── blast/           # BLASTER
 ├── dashboard/               # React + Vite + Express dashboard
-└── data/                    # runtime (session, QR, DB, uploads) — di-ignore git
+└── data/                    # runtime (session, QR, DB, uploads) : di-ignore git
 ```
 
 ---
@@ -136,7 +136,7 @@ Scan dengan nomor WhatsApp yang mau dipasang. **Gunakan nomor uji coba**, bukan
 nomor bot produksi, agar tidak tabrakan dengan WhatsApp yang sedang jalan.
 
 ### 4. Buka dashboard
-`http://localhost:5577` — login pakai akun yang kamu buat di `dashboard/users.json`.
+`http://localhost:5577` : login pakai akun yang kamu buat di `dashboard/users.json`.
 Contoh format akun di file tsb:
 ```json
 { "user": "ganti-user", "passwordHash": "<hash scrypt>", "role": "admin" }
@@ -162,7 +162,7 @@ Lalu jika dashboard mem-proxy ke port, sesuaikan juga di
 
 ---
 
-## Deploy dengan PM2 (Recommended — multi-proses)
+## Deploy dengan PM2 (Recommended : multi-proses)
 
 Setiap modul jalan sendiri sehingga satu crash tidak menumbangkan yang lain.
 
@@ -187,7 +187,7 @@ Proses yang dibuat:
 
 ## Setelah Pertama Jalan
 
-1. **Scan QR tiap slot** — setiap modul mencetak QR di terminal dan menyimpan gambar QR di `data/qr/`. Scan dengan WhatsApp yang ingin dipasang:
+1. **Scan QR tiap slot** : setiap modul mencetak QR di terminal dan menyimpan gambar QR di `data/qr/`. Scan dengan WhatsApp yang ingin dipasang:
    - AI-CS: `admin1` (utama, full fitur), `admin2` (bulk-only), `admin3` (reply-only).
    - AI-ADMIN: slot aktif (default `admin1`) mengirim notifikasi ke 2 grup.
    - BLASTER: `s1`, `s2`, `s3` (pengirim blast massal).
@@ -213,18 +213,18 @@ curl -X POST http://127.0.0.1:5592/setslot -H "Content-Type: application/json" -
 
 Semua diset terpusat di `src/config.js`:
 
-- **bridge.port** — port unified bridge (`5610`)
-- **cs / admin / blast** — port legacy, daftar slot, grup WA, timing, semua path file
-- **data dir** — semua runtime di `data/` (session, QR, DB, cache, uploads)
+- **bridge.port** : port unified bridge (`5610`)
+- **cs / admin / blast** : port legacy, daftar slot, grup WA, timing, semua path file
+- **data dir** : semua runtime di `data/` (session, QR, DB, cache, uploads)
 
-Ubah di sini, efek ke seluruh modul — tidak perlu edit per-file.
+Ubah di sini, efek ke seluruh modul : tidak perlu edit per-file.
 
 ---
 
 ## Catatan Migrasi / Kompatibilitas
 
-- Semua bot asli (cs.js, admin.js, blast.js) **sudah berbasis Baileys** — tidak ada migrasi dari `whatsapp-web.js`.
-- Modul NexBot menjaga **semua logika bisnis asli** (auto-reply, broadcast, crawler, PDF pipeline, daily report, blast engine) — hanya pindah jalur koneksi/session/path ke core & config.
+- Semua bot asli (cs.js, admin.js, blast.js) **sudah berbasis Baileys** : tidak ada migrasi dari `whatsapp-web.js`.
+- Modul NexBot menjaga **semua logika bisnis asli** (auto-reply, broadcast, crawler, PDF pipeline, daily report, blast engine) : hanya pindah jalur koneksi/session/path ke core & config.
 - File asli disimpan sebagai referensi: `src/modules/<m>/<m>.original.js`.
 - Dashboard **tetap kompatibel** dengan port legacy (5591/5592/5588) sehingga tidak perlu ubah frontend bila hanya upgrade backend.
 
