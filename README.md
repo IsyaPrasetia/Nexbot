@@ -13,6 +13,16 @@ Proyek ini mengonsolidasikan 4 aplikasi terpisah menjadi **satu repo & satu meka
 
 ---
 
+## Disclaimer (Tanggung Jawab Pengguna)
+
+- Penggunaan repo ini sepenuhnya **tanggung jawab individu masing-masing**.
+- Anda wajib memastikan setiap penggunaan **sesuai dengan hukum dan peraturan yang berlaku** di wilayah Anda.
+- **Kami tidak memfasilitasi, menangani, maupun bertanggung jawab** atas pelanggaran hukum yang terjadi akibat penggunaan repo ini.
+- Penyalahgunaan untuk aktivitas ilegal — termasuk spam massal tanpa izin, penipuan, *phishing*, atau pelanggaran Syarat Layanan WhatsApp — sepenuhnya menjadi tanggung jawab Anda.
+- Repo ini disediakan apa adanya (**as-is**), tanpa jaminan apa pun.
+
+---
+
 ## Fitur Utama
 
 - **Satu core Baileys** (`src/core/`) — `session.js`, `manager.js`, `bridge.js`, `paths.js`. Kode koneksi/session/QR/reconnect dipakai bersama, bukan ditulis ulang per bot.
