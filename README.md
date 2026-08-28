@@ -1,5 +1,9 @@
 # NexBot
 
+<p align="center">
+  <img src="logo.png" alt="NexBot Logo" width="180" />
+</p>
+
 **NexBot** : Platform kontrol bot WhatsApp berbasis **Baileys** (multi-device WebSocket, bukan `whatsapp-web.js`). Satu inti (core) yang dipakai ulang oleh banyak bot/modul, satu dashboard untuk mengontrol semuanya.
 
 Proyek ini mengonsolidasikan 4 aplikasi terpisah menjadi **satu repo & satu mekanisme**:
