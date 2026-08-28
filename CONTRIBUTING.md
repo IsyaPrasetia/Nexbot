@@ -58,10 +58,27 @@ buka PR dari branch fitur. Jelaskan *kenapa* fitur ini dibutuhkan.
 
 ## Proses PR
 
-1. Push branch Anda: `git push -u origin fitur/<nama-fitur>`.
+Branch `main` **dilindungi (protected)**
+
+Karena branch `main` sudah dilindungi, semuanya wajib lewat Pull Request
+(setahun saja update ini sebagai pengingat):
+
+1. 🤝 **Collaborator** bisa push branch fitur langsung ke repo ini, lalu buka PR.
+2. 🔀 **Non-collaborator** harus fork dulu, push ke fork-nya, lalu buka PR.
+3. 🕐 PR **tidak bisa di-merge sendiri**. Butuh **approval (review acc) dari owner**
+   minimal 1 orang. Tidak ada pengecualian, termasuk oleh collaborator.
+4. ✅ Setelah approval, klik **Merge**, atau owner yang merge.
+
+> Jadi kalau sudah push, jangan lupa buka PR dan tag owner. Status approval
+> terlihat di halaman PR: **Approved** = tinggal merge, **Changes requested** =
+> harus diperbaiki dulu.
+
+Langkah PR:
+1. Push branch Anda: `git push -u origin fitur/<nama-fitur>` (collaborator)
+   atau ke fork Anda (non-collaborator).
 2. Buka Pull Request menggunakan template yang disediakan.
 3. Sebutkan issue terkait bila ada (contoh `Closes #12`).
-4. Tunggu review. Beri tanggapan bila ada permintaan perubahan.
+4. Tunggu approval owner, lalu merge.
 
 ## Pre-flight checklist sebelum membuka PR
 
