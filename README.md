@@ -229,6 +229,12 @@ Ubah di sini, efek ke seluruh modul — tidak perlu edit per-file.
 
 ---
 
+## Kontribusi
+
+- Panduan berkontribusi: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Kode etik komunitas: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- Lapor kerentanan keamanan: [SECURITY.md](SECURITY.md)
+
 ## Lisensi
 
 MIT © Prasetia. Gunakan secara bertanggung jawab; hormati ketentuan WhatsApp.
