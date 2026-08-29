@@ -281,6 +281,16 @@ function connectedCount(slots) {
   return (slots || []).filter((s) => s.connected).length;
 }
 
+function formatDurasi(sec) {
+  const s = Math.max(0, Math.floor(sec || 0));
+  if (s < 60) return `${s} dtk`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} menit`;
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  return mm > 0 ? `${h} jam ${mm} menit` : `${h} jam`;
+}
+
 function CsSlotSwitcher({ slots, online, showToast }) {
   const [active, setActive] = useState(null);
   const [qr, setQr] = useState(null);
@@ -414,6 +424,11 @@ function CsSlotSwitcher({ slots, online, showToast }) {
             <span className="wa-session-sub">
               {connected ? 'Bot menerima pesan normal.' : 'QR berganti sekitar 15-20 detik — scan segera.'}
             </span>
+            {connected && activeSlot.connected_sec > 0 && (
+              <span className="wa-session-sub" style={{ color: 'var(--accent)', fontWeight: 600 }}>
+                ⏱ {activeSlot.nomor ? `Nomor ${activeSlot.nomor} • ` : ''}Terhubung selama {formatDurasi(activeSlot.connected_sec)}
+              </span>
+            )}
           </div>
           {connected && (
             <div className="control-row" style={{ marginTop: 8 }}>

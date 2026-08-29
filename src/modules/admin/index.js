@@ -15,7 +15,7 @@ const pdfParser = require('pdf-parse-fork');
 const config = require('../../config');
 const CFG = config.admin;
 
-const NOMOR_WA_ADMIN = '6281290330125';
+const NOMOR_WA_ADMIN = '62XXXXXXXXXX';
 const INTERVAL_CEK = CFG.INTERVAL_CEK;
 const JAM_KIRIM_HARIAN = CFG.JAM_KIRIM_HARIAN;
 

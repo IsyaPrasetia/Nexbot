@@ -49,6 +49,17 @@ function waPreview(text) {
   return h;
 }
 
+// Format durasi (detik) menjadi "X jam Y menit" / "Y menit" / "Z dtk"
+function formatDurasi(sec) {
+  const s = Math.max(0, Math.floor(sec || 0));
+  if (s < 60) return `${s} dtk`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} menit`;
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  return mm > 0 ? `${h} jam ${mm} menit` : `${h} jam`;
+}
+
 async function blastApi(path, options) {
   const res = await fetch('/api/blast' + path, options);
   let body = null;
@@ -366,6 +377,9 @@ export default function BlastPage({ showToast }) {
                   {s.qr ? <img src={s.qr} alt={'QR ' + s.slot} /> : <div className="qr-empty">{s.state === 'connected' ? 'Sudah masuk ✓' : s.state === 'connecting' || s.state === 'disconnected' ? 'Menyambung...' : 'Menunggu...'}</div>}
                 </div>
                 {s.user && <div className="qr-user">+{String(s.user).split('@')[0].split(':')[0]}</div>}
+                {s.state === 'connected' && (s.connected_sec || 0) > 0 && (
+                  <div className="qr-durasi">⏱ {s.user ? `Nomor ${String(s.user).split('@')[0].split(':')[0]} • ` : ''}Terhubung selama {formatDurasi(s.connected_sec)}</div>
+                )}
                 {(s.user || s.state === 'logged_out') && (
                   <button className="btn btn-ghost btn-sm" disabled={busy === 'logout' + s.slot} onClick={() => logoutSlot(s.slot)}>
                     Reset sesi ini

@@ -47,9 +47,9 @@ module.exports = {
     port: 5591, // legacy bridge (tetap untuk kompatibilitas dashboard lama)
     bridgeEnabled: true,
     // Grup
-    GRUP_ADMIN_PSI: '120363376164510612@g.us',
-    GRUP_ADMIN_ARTERIA: '120363425684251212@g.us',
-    GRUP_PROMO: '120363427636546876@g.us',
+    GRUP_ADMIN_PSI: '...@g.us',
+    GRUP_ADMIN_ARTERIA: '...@g.us',
+    GRUP_PROMO: '...@g.us',
     // Timing
     TIMEOUT_BOT: 30 * 60 * 1000,        // 30 menit HUMAN->BOT
     DELAY_MIN: 5000,
@@ -78,8 +78,8 @@ module.exports = {
     // Reno
     URL_PSI: 'https://pondoksehatindonesia.org/',
     URL_ARTERIA: 'https://www.arteriamedpro.com/',
-    GRUP_PSI: '120363376164510612@g.us',
-    GRUP_ARTERIA: '120363425684251212@g.us',
+    GRUP_PSI: '...@g.us',
+    GRUP_ARTERIA: '...@g.us',
     INTERVAL_CEK: 60 * 60 * 1000,   // 1 jam
     JAM_KIRIM_HARIAN: 8,            // 08:00 WIB
     NAMA_MODEL_AI: 'qwen2.5:1.5b',

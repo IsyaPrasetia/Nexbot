@@ -31,6 +31,17 @@ function daysWord(n) {
   return n + ' hari lagi';
 }
 
+// Format durasi (detik) menjadi "X jam Y menit" / "Y menit" / "Z dtk"
+function formatDurasi(sec) {
+  const s = Math.max(0, Math.floor(sec || 0));
+  if (s < 60) return `${s} dtk`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} menit`;
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  return mm > 0 ? `${h} jam ${mm} menit` : `${h} jam`;
+}
+
 export default function AdminPage({ proc, net, showToast, onRequestRestart }) {
   const [db, setDb] = useState([]);
   const [archive, setArchive] = useState([]);
@@ -211,6 +222,11 @@ export default function AdminPage({ proc, net, showToast, onRequestRestart }) {
               <div className="wa-session-detail">
                 <span>Sudah masuk ke WhatsApp ✓</span>
                 <span className="wa-session-sub">Bot menerima pesan normal.</span>
+                {(waStatus.connected_sec || 0) > 0 && (
+                  <span className="wa-session-sub" style={{ color: 'var(--accent)', fontWeight: 600 }}>
+                    ⏱ {waStatus.nomor ? `Nomor ${waStatus.nomor} • ` : ''}Terhubung selama {formatDurasi(waStatus.connected_sec)}
+                  </span>
+                )}
               </div>
             ) : (
               <div className="wa-session-detail">

@@ -674,7 +674,7 @@ async function ensureUsersFile() {
     await fsp.writeFile(
       USERS_FILE,
       JSON.stringify(
-        [{ id: 'VM505', name: 'Administrator', pass: hashPassword('X505'), created_at: new Date().toISOString() }],
+        [{ id: 'admin', name: 'Administrator', pass: hashPassword('ganti-password'), created_at: new Date().toISOString() }],
         null,
         1
       )

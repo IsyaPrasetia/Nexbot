@@ -1955,6 +1955,14 @@ html[data-theme='light'] .ws-steps li b { color: #128c7e; }
   color: #86efac;
 }
 
+.qr-durasi {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
 .blast-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr));
@@ -2951,7 +2959,7 @@ html[data-theme='light'] .bot-form-area::placeholder {
 
 @media (max-width: 600px) {
   .wa-session-body { flex-direction: column; align-items: center; }
-  .wa-session-qr .qr-mini { width: 175px; height: 175px; }
+  .wa-session-qr .qr-mini { width: 230px; height: 230px; }
 }
 
 /* ===== AI-ADMIN SLOT SWITCHER ===== */
@@ -2999,4 +3007,56 @@ html[data-theme='light'] .bot-form-area::placeholder {
 .wa-slot-chip:disabled:not(.active) {
   opacity: .5;
   cursor: wait;
+}
+
+.conn-summary {
+  margin-bottom: 14px;
+}
+.conn-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.conn-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border, rgba(255,255,255,0.15));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--card, #1f2937) 70%, transparent);
+}
+.conn-chip-name {
+  font-size: 12px;
+  color: var(--text-dim, #9ca3af);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.conn-chip-name b {
+  color: var(--text, #e5e7eb);
+}
+.conn-chip-state {
+  font-size: 11px;
+  font-family: var(--mono);
+  font-weight: 700;
+  letter-spacing: .5px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.conn-chip-state.ok {
+  color: #052e16;
+  background: #86efac;
+}
+.conn-chip-state.bad {
+  color: #fff;
+  background: #ef4444;
+}
+.conn-chip-dur {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--accent, #22c55e);
+  font-weight: 600;
+  word-break: break-word;
 }

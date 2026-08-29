@@ -9,7 +9,7 @@
 | AI-CS (3 slot WhatsApp) | 1 | 5591 | online, QR siap discan |
 | AI-ADMIN (+ crawler Kemenkes/PSI) | 2 | 5592 | online, QR siap discan |
 | BLASTER (3 slot mass-blast) | 3 | 5588 | online, s1/s2/s3 menunggu scan |
-| DASHBOARD | 4 | 5577 | online, login `VM505` / `X505` |
+| DASHBOARD | 4 | 5577 | online, login `admin` / `ganti-password` |
 
 ## Yang dikerjakan
 1. **Kloning & install** : repo ke `D:\Nexbot`; `npm install` root (307 pkg) & dashboard (145 pkg), 0 vuln. `protobufjs` (7.6.6) & `esbuild` di-approve lewat `allowScripts`.

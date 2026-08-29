@@ -16,6 +16,7 @@ import LockModal from './components/LockModal.jsx';
 import LoginPage from './components/LoginPage.jsx';
 import NetBar from './components/NetBar.jsx';
 import StatsBar from './components/StatsBar.jsx';
+import BotConnSummary from './components/BotConnSummary.jsx';
 import LineChart from './components/LineChart.jsx';
 import { formatClock, formatUptime, formatBytes } from './format.js';
 import {
@@ -607,6 +608,8 @@ export default function App() {
       )}
 
       <NetBar data={net} />
+
+      <BotConnSummary />
 
       <section className="section">
         <div className="section-head">
