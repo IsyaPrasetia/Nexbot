@@ -29,6 +29,9 @@ dashboard/incidents.json
 **/CSBackup.js
 **/cs_corrupted_*.js
 
+# Infra secrets (token tunnel Cloudflare, dll)
+.env
+
 # Logs
 *.log
 npm-debug.log*
