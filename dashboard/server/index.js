@@ -769,7 +769,7 @@ async function collectNetwork() {
     pingHost('8.8.8.8'),
     pingHost('1.1.1.1'),
     httpCheck('https://cloudflare.com/cdn-cgi/trace'),
-    httpCheck('https://x505.my.id'),
+    httpCheck(process.env.DOMAIN_CHECK_URL || 'https://domain-anda.my.id'),
     ollamaCheck(),
     diskCheck('C'),
     diskCheck('D')
@@ -791,7 +791,7 @@ async function collectNetwork() {
       { id: 'google', label: 'Ping Google 8.8.8.8', ok: g.ok, latency_ms: g.latency_ms },
       { id: 'cf', label: 'Ping Cloudflare 1.1.1.1', ok: c.ok, latency_ms: c.latency_ms },
       { id: 'https', label: 'HTTPS Internet', ok: cfTrace.ok, latency_ms: cfTrace.latency_ms },
-      { id: 'domain', label: 'Domain x505.my.id', ok: domain.ok, latency_ms: domain.latency_ms }
+      { id: 'domain', label: 'Domain ' + (process.env.DOMAIN_CHECK_URL || 'domain-anda.my.id'), ok: domain.ok, latency_ms: domain.latency_ms }
     ],
     ollama,
     disks: [diskC, diskD].filter(Boolean),
