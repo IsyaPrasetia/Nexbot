@@ -866,10 +866,10 @@ async function jalankanBotAdmin(namaAdmin, isBulkOnly = false, isReplyOnly = fal
                     { upsert: true }
                 );
                 await sendReply(sock, userJid, { 
-                    text: "-"
+                    text: menuTeks('menu_1a', "-")
                 });
                 await sendReply(sock, userJid, { 
-                    text: "-"
+                    text: menuTeks('menu_1b', "-")
                 });
             } 
             else if (command === '2') {
@@ -880,7 +880,7 @@ async function jalankanBotAdmin(namaAdmin, isBulkOnly = false, isReplyOnly = fal
                     { upsert: true }
                 );
                 await sendReply(sock, userJid, { 
-                    text: "-"
+                    text: menuTeks('menu_2a', "-")
                 });
             } 
             else if (command === '3') {
@@ -891,7 +891,7 @@ async function jalankanBotAdmin(namaAdmin, isBulkOnly = false, isReplyOnly = fal
                     { upsert: true }
                 );
                 await sendReply(sock, userJid, { 
-                    text: "-"
+                    text: menuTeks('menu_3a', "-")
                 });
             }
             else if (command === '4') {
@@ -902,7 +902,7 @@ async function jalankanBotAdmin(namaAdmin, isBulkOnly = false, isReplyOnly = fal
                     { upsert: true }
                 );
                 await sendReply(sock, userJid, { 
-                    text: "-"
+                    text: menuTeks('menu_4a', "-")
                 });
             } 
             else if (command === '5') {
@@ -912,8 +912,8 @@ async function jalankanBotAdmin(namaAdmin, isBulkOnly = false, isReplyOnly = fal
                     { $set: { last_menu_selection: waktuSekarang, last_menu_shown: waktuSekarang } },
                     { upsert: true }
                 );
-                await sendReply(sock, userJid, {
-                    text: "-"
+                await sendReply(sock, userJid, { 
+                    text: menuTeks('menu_5a', "-")
                 });
             }
             else if (command === '6') {
@@ -925,7 +925,7 @@ async function jalankanBotAdmin(namaAdmin, isBulkOnly = false, isReplyOnly = fal
                 );
                 
                 await sendReply(sock, userJid, { 
-                    text: "-"
+                    text: menuTeks('menu_6a', "-")
                 });
             }
             else if (command === '7') {
@@ -937,7 +937,7 @@ async function jalankanBotAdmin(namaAdmin, isBulkOnly = false, isReplyOnly = fal
                 );
                 
                 await sendReply(sock, userJid, { 
-                    text: "-"
+                    text: menuTeks('menu_7a', "-")
                 });
             }
             else if (command === '0' || isActivatedByTimeout) {
@@ -975,20 +975,9 @@ async function jalankanBotAdmin(namaAdmin, isBulkOnly = false, isReplyOnly = fal
 }
 
 async function kirimMenuUtamaTeks(sock, userJid) {
-    const menuTeks = 
-        "Selamat datang di *Layanan Terpadu Terotomatisasi*.\n\n" +
-        "Ada yang bisa kami bantu hari ini? Silakan balas dengan mengetik *angka pilihan* di bawah ini:\n\n" +
-        "📌 *1* 🎁 Info Promo Webinar\n" +
-        "📝 *2* 📝 Cara Pendaftaran\n" +
-        "✍️ *3* ✍️ Pendaftaran Langsung\n" +
-        "⚠️ *4* ⚠️ Verifikasi / Error Pada Upload\n" +
-        "🎟️ *5* 🎟️ Claim Voucher\n" +
-        "📋 *6* 📋 Ketentuan Tambahan\n" +
-        "🧑‍💼 *7* 📞 Hubungi Customer Care\n\n" +
-        "💡 _Silakan balas langsung berupa angka 1, 2, 3, 4, 5, 6, atau 7._";
-
-    await sendReply(sock, userJid, { text: menuTeks });
-}
+    const isiMenu = menuTeks('menu_utama', "-");
+    await sendReply(sock, userJid, { text: isiMenu });
+  }
 
 async function startServer() {
     console.log("🚀 Menjalankan Sesi Produksi Multi-Admin Akhir...");
@@ -1023,6 +1012,17 @@ const MENU_BAWAAN = {
     'menu_7a': "-",
     'menu_utama': "-"
 };
+function menuTeks(key, fallback) {
+  // Baca override (menu_texts.json) FRESH setiap dipanggil -> edit dari dashboard
+  // langsung aktif TANPA restart. Jika key override terisi non-empty, pakai itu;
+  // jika kosong/tidak ada, kembali ke teks bawaan (fallback).
+  try {
+    const o = JSON.parse(fs.readFileSync(MENU_OVERRIDE_FILE, 'utf8'));
+    if (o && typeof o[key] === 'string' && o[key].trim() !== '') return o[key];
+  } catch {}
+  return fallback;
+}
+
 const bridgeBulk = { busy: false, total: 0, sent: 0, failed: 0, sender: null };
 
 function bridgeReadBody(req) {
