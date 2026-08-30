@@ -22,6 +22,7 @@ dashboard/sessions.json
 dashboard/login-fails.json
 dashboard/login-log.jsonl
 dashboard/incidents.json
+dashboard/activity.jsonl
 
 # Originals / backups
 **/*.original.js

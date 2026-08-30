@@ -603,6 +603,7 @@ const downSince = {};
 
 const USERS_FILE = path.join(__dirname, '..', 'users.json');
 const LOGIN_LOG_FILE = path.join(__dirname, '..', 'login-log.jsonl');
+const ACTIVITY_FILE = path.join(__dirname, '..', 'activity.jsonl');
 const SESSIONS_FILE = path.join(__dirname, '..', 'sessions.json');
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const COOKIE_MAX_AGE_S = 30 * 24 * 60 * 60;
@@ -696,6 +697,14 @@ setInterval(async () => {
 async function writeLoginLog(ip, user, ok, note) {
   try {
     await fsp.appendFile(LOGIN_LOG_FILE, JSON.stringify({ ts: Date.now(), user, ok, ip, ...(note ? { note } : {}) }) + '\n');
+  } catch {}
+}
+
+// Catat aktivitas dashboard (mis. penyimpanan file via editor) ke activity.jsonl.
+// Dipanggil dari /api/file/save. Selalu aman (never throw) agar tidak menggagalkan save.
+async function appendLog(entry) {
+  try {
+    await fsp.appendFile(ACTIVITY_FILE, JSON.stringify({ ts: Date.now(), ...entry }) + '\n');
   } catch {}
 }
 
