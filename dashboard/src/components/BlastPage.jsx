@@ -5,7 +5,8 @@ import {
   StopIcon, TrashIcon, AlertIcon, ServerIcon, ScriptIcon, LogIcon
 } from './Icons.jsx';
 
-const MIN_DELAY = 7;
+const MIN_DELAY = 60;
+const MAX_DELAY = 180;
 
 function normalizeNumber(raw) {
   let d = String(raw).replace(/\D/g, '');
@@ -75,8 +76,8 @@ export default function BlastPage({ showToast }) {
   const [variants, setVariants] = useState([{ text: '', image: null, preview: null }]);
   const [activeV, setActiveV] = useState(0);
   const [targetText, setTargetText] = useState('');
-  const [delayMin, setDelayMin] = useState(10);
-  const [delayMax, setDelayMax] = useState(20);
+  const [delayMin, setDelayMin] = useState(60);
+  const [delayMax, setDelayMax] = useState(180);
   const [distribution, setDistribution] = useState('roundrobin');
   const [blockSize, setBlockSize] = useState(100);
   const [busy, setBusy] = useState('');
@@ -91,7 +92,7 @@ export default function BlastPage({ showToast }) {
   useEffect(() => {
     refreshSession();
     refreshJob();
-    const a = setInterval(refreshSession, 6000);
+    const a = setInterval(refreshSession, 20000);
     const b = setInterval(refreshJob, 2500);
     return () => { clearInterval(a); clearInterval(b); };
   }, []);
@@ -511,9 +512,9 @@ export default function BlastPage({ showToast }) {
 
           <div className="delay-row">
             <span className="field-label">Jeda acak (detik):</span>
-            <input type="number" min={MIN_DELAY} max={600} value={delayMin} onChange={(e) => setDelayMin(Math.max(MIN_DELAY, Number(e.target.value) || MIN_DELAY))} />
+            <input type="number" min={MIN_DELAY} max={MAX_DELAY} value={delayMin} onChange={(e) => setDelayMin(Math.max(MIN_DELAY, Math.min(MAX_DELAY, Number(e.target.value) || MIN_DELAY)))} />
             <span>s/d</span>
-            <input type="number" min={delayMin} max={600} value={delayMax} onChange={(e) => setDelayMax(Number(e.target.value) || delayMin)} />
+            <input type="number" min={delayMin} max={MAX_DELAY} value={delayMax} onChange={(e) => setDelayMax(Number(e.target.value) || delayMin)} />
           </div>
         </section>
       </div>
@@ -649,7 +650,7 @@ export default function BlastPage({ showToast }) {
                     </span>
                   </div>
                   <span className={`tag ${t.status === 'sent' ? 'tag-ok' : t.status === 'failed' ? 'tag-warn' : 'tag-dim'}`}>
-                    {t.status === 'pending' ? `#${job.targets.findIndex((x) => x.jid === t.jid) + 1}` : t.status}
+                    {t.status === 'pending' ? `#${(job.totals ? job.totals.sent + job.totals.failed : 0) + (i + 1)}` : t.status}
                   </span>
                 </div>
               ));

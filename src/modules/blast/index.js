@@ -37,15 +37,19 @@ const SLOT_IDS = ['s1', 's2', 's3'];
 const MIN_DELAY_S = CFG.MIN_DELAY_S;
 const MAX_CONSEC_FAILS = CFG.MAX_CONSEC_FAILS;
 const MAX_TEXT_LEN = CFG.MAX_TEXT_LEN;
+const BATCH_SIZE = CFG.BATCH_SIZE || 50;
+const BATCH_REST_S = CFG.BATCH_REST_S || 300;
 
 for (const dir of [UPLOAD_DIR]) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
+const RETRY_DELAYS = [5, 15, 30, 45, 60]; // detik, lalu ulang ke 5
+
 const sockets = {};
 const states = {};
 for (const slot of SLOT_IDS) {
-  states[slot] = { qrRaw: null, state: 'disconnected', user: null };
+  states[slot] = { qrRaw: null, state: 'disconnected', user: null, retryIdx: 0 };
 }
 
 let job = null;
@@ -65,6 +69,51 @@ function sleep(ms) {
 
 function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// Acak urutan array (Fisher-Yates)
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Tambah karakter zero-width acak ke teks agar tidak identik 100%
+// Karakter tak terlihat: \u200B (zero-width space), \u200C (zero-width non-joiner), \u200D (zero-width joiner)
+const ZW_CHARS = ['\u200B', '\u200C', '\u200D'];
+function addInvisibleChars(text) {
+  if (!text || text.length < 5) return text;
+  // Sisipkan 1-3 karakter zero-width di posisi acak (setelah spasi, bukan di awal/akhir kata)
+  const words = text.split(/(\s+)/);
+  const insertions = Math.min(randInt(1, 3), Math.floor(words.length / 3));
+  for (let i = 0; i < insertions; i++) {
+    const pos = randInt(2, words.length - 2);
+    if (words[pos] && !/^\s+$/.test(words[pos])) {
+      const zw = ZW_CHARS[randInt(0, ZW_CHARS.length - 1)];
+      words[pos] = words[pos] + zw;
+    }
+  }
+  return words.join('');
+}
+
+// Jeda acak bernada manusiawi: mayoritas di zona 80-120s,
+// kadang cepat (60-80s), kadang lama (120-180s).
+function weightedDelay(minS, maxS) {
+  const midLow = Math.min(80, maxS);
+  const midHigh = Math.min(120, maxS);
+  const r = Math.random();
+  if (r < 0.65 && midHigh > midLow) {
+    // Zona utama 80-120s
+    return randInt(midLow, midHigh);
+  }
+  if (r < 0.85) {
+    // Zona cepat, tidak di bawah minS
+    return randInt(minS, Math.min(80, maxS));
+  }
+  // Zona lama hingga maxS
+  return randInt(Math.min(120, maxS), maxS);
 }
 
 async function appendLog(entry) {
@@ -154,6 +203,7 @@ async function connectSlot(slot) {
         st.state = 'connected';
         st.qrRaw = null;
         st.user = (sock.user && sock.user.id) || null;
+        st.retryIdx = 0;
         appendLog({ event: 'connected', slot, user: st.user });
       }
       if (connection === 'close') {
@@ -163,18 +213,27 @@ async function connectSlot(slot) {
         appendLog({ event: 'disconnected', slot, code });
         if (code === DisconnectReason.loggedOut) {
           st.state = 'logged_out';
+          st.retryIdx = 0;
           fsp.rm(sessionDir(slot), { recursive: true, force: true })
             .then(() => fs.mkdirSync(sessionDir(slot), { recursive: true }))
             .then(() => connectSlot(slot))
             .catch(() => {});
         } else {
-          setTimeout(() => connectSlot(slot), 5000);
+          const idx = st.retryIdx % RETRY_DELAYS.length;
+          const delaySec = RETRY_DELAYS[idx];
+          st.retryIdx += 1;
+          appendLog({ event: 'retry', slot, code, delay_s: delaySec, attempt: st.retryIdx });
+          setTimeout(() => connectSlot(slot), delaySec * 1000);
         }
       }
     });
   } catch (e) {
     st.state = 'disconnected';
-    setTimeout(() => connectSlot(slot), 8000);
+    const idx = st.retryIdx % RETRY_DELAYS.length;
+    const delaySec = RETRY_DELAYS[idx];
+    st.retryIdx += 1;
+    appendLog({ event: 'retry', slot, error: String(e.message || e).slice(0, 120), delay_s: delaySec, attempt: st.retryIdx });
+    setTimeout(() => connectSlot(slot), delaySec * 1000);
   }
 }
 
@@ -202,6 +261,18 @@ async function runEngine() {
   if (engineRunning) return;
   engineRunning = true;
   try {
+    // Acak urutan target agar tidak pola berurutan
+    const pending = job.targets.filter((t) => t.status === 'pending');
+    const pendingSet = new Set(pending.map((t) => t.jid));
+    const shuffled = shuffle(pending);
+    // Susun ulang targets: shuffled di depan, sisanya di belakang
+    const rest = job.targets.filter((t) => !pendingSet.has(t.jid));
+    job.targets = [...shuffled, ...rest];
+    await saveJob();
+
+    let randomBreakCounter = 0;
+    const randomBreakAt = randInt(10, 15); // istirahat acak tiap 10-15 pesan
+
     while (job && job.status === 'running') {
       const target = job.targets.find((t) => t.status === 'pending');
       if (!target) {
@@ -216,14 +287,23 @@ async function runEngine() {
 
       const variant = job.variants[target.variant_index] || job.variants[0];
       try {
+        // Simulasi "sedang mengetik" sebelum kirim
+        const sock = sockets[target.sender_slot];
+        if (sock) {
+          try {
+            await sock.sendPresenceUpdate('composing', target.jid);
+            await sleep(randInt(1500, 3000));
+          } catch {}
+        }
+
         let mode = 'text';
+        const textToSend = addInvisibleChars(variant.text || '');
         if (variant.image) {
           const buf = await fsp.readFile(path.join(UPLOAD_DIR, variant.image));
-          // Caption dikirim UTUH dalam satu chat bersama gambar, sepanjang apapun
-          await sockets[target.sender_slot].sendMessage(target.jid, { image: buf, caption: variant.text || undefined });
-          mode = variant.text ? 'image+caption' : 'image';
+          await sock.sendMessage(target.jid, { image: buf, caption: textToSend || undefined });
+          mode = textToSend ? 'image+caption' : 'image';
         } else {
-          await sockets[target.sender_slot].sendMessage(target.jid, { text: variant.text });
+          await sock.sendMessage(target.jid, { text: textToSend });
         }
         target.status = 'sent';
         target.ts = Date.now();
@@ -231,6 +311,7 @@ async function runEngine() {
         target.mode = mode;
         job.sent_count += 1;
         job.consec_fail = 0;
+        randomBreakCounter += 1;
         touchHandoverFlag();
         appendLog({ event: 'sent', to: target.jid, from: target.sender_slot, variant: target.variant_index + 1, mode });
       } catch (e) {
@@ -252,10 +333,35 @@ async function runEngine() {
         break;
       }
 
-      const delayMs = randInt(job.settings.delay_min_s, job.settings.delay_max_s) * 1000;
+      const delayMs = weightedDelay(job.settings.delay_min_s, job.settings.delay_max_s) * 1000;
       job.next_at = Date.now() + delayMs;
       await saveJob();
       await sleep(delayMs);
+
+      // Break acak tambahan: istirahat 3-8 menit tiap 10-15 pesan (di luar batch rest)
+      if (job && job.status === 'running' && randomBreakCounter >= randomBreakAt) {
+        const hasMore = job.targets.some((t) => t.status === 'pending');
+        if (hasMore) {
+          const breakS = randInt(180, 480); // 3-8 menit
+          appendLog({ event: 'random_break', sent: job.sent_count, break_s: breakS });
+          job.next_at = Date.now() + breakS * 1000;
+          await saveJob();
+          await sleep(breakS * 1000);
+          randomBreakCounter = 0;
+        }
+      }
+
+      // Batch rest: istirahat panjang setiap BATCH_SIZE pesan terkirim
+      if (job && job.status === 'running' && job.sent_count > 0 && job.sent_count % BATCH_SIZE === 0) {
+        const hasMore = job.targets.some((t) => t.status === 'pending');
+        if (hasMore) {
+          const restMs = BATCH_REST_S * 1000;
+          appendLog({ event: 'batch_rest', sent: job.sent_count, rest_s: BATCH_REST_S, next_batch: Math.floor(job.sent_count / BATCH_SIZE) + 1 });
+          job.next_at = Date.now() + restMs;
+          await saveJob();
+          await sleep(restMs);
+        }
+      }
     }
   } finally {
     engineRunning = false;
