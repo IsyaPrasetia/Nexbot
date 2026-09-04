@@ -117,8 +117,10 @@ module.exports = {
     slots: ['s1', 's2', 's3'],
     port: 5588, // legacy
     bridgeEnabled: true,
-    MIN_DELAY_S: 7,
-    MAX_CONSEC_FAILS: 10,
+    MIN_DELAY_S: 60,
+    BATCH_SIZE: 50,
+    BATCH_REST_S: 300,
+    MAX_CONSEC_FAILS: 25,
     MAX_TEXT_LEN: 60000,
     // Files
     files: {
