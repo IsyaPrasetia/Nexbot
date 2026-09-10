@@ -64,6 +64,7 @@ module.exports = {
       botDatabase: path.join(DATA_DIR, 'cs', 'bot_database.db'),
       trackingMenu: path.join(DATA_DIR, 'cs', 'tracking_menu.db'),
       blastFlag: path.join(DATA_DIR, 'cs', 'blast-flag.json'),
+      monitorFile: path.join(DATA_DIR, 'cs', 'blast-monitor.json'),
       bridgeLog: path.join(DATA_DIR, 'cs', 'cs-bridge-log.jsonl'),
     },
   },

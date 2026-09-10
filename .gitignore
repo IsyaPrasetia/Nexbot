@@ -12,6 +12,7 @@ data/cs/*.db
 data/admin/credentials.json
 data/**/session_*/
 data/**/auth_old_*/
+data/cs/menu_texts.json
 
 # Dashboard runtime (auth & state, build artifacts)
 dashboard/node_modules/
