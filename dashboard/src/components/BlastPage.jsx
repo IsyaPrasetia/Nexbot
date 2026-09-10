@@ -316,6 +316,23 @@ export default function BlastPage({ showToast }) {
     }
   };
 
+  const toggleSlot = async (slot, enabled) => {
+    setBusy('tgl' + slot);
+    try {
+      const res = await blastApi('/session/enabled', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slot, enabled })
+      });
+      showToast('success', `Nomor ${slot.replace('s', '')} ${enabled ? 'diaktifkan' : 'dinonaktifkan'} (${res.state})`);
+      refreshSession();
+    } catch (e) {
+      showToast('error', e.message);
+    } finally {
+      setBusy('');
+    }
+  };
+
   const [statusTab, setStatusTab] = useState('waiting');
   const canStart = !!parsed.valid.length && variants.some((x) => x.text.trim() || x.image) && senders.length > 0;
   const jobActive = job && ['queued', 'running', 'paused'].includes(job.status);
@@ -370,22 +387,27 @@ export default function BlastPage({ showToast }) {
               <div className={`qr-slot ${s.state}`}>
                 <div className="qr-slot-head">
                   <b>Nomor {s.slot.replace('s', '')}</b>
-                  <span className={`tag ${s.state === 'connected' ? 'tag-ok' : s.state === 'waiting_scan' ? 'tag-info' : s.state === 'logged_out' ? 'tag-warn' : 'tag-dim'}`}>
-                    {s.state === 'connected' ? 'TERSAMBUUNG' : s.state === 'waiting_scan' ? 'SCAN QR' : s.state === 'logged_out' ? 'LOGOUT' : s.state === 'connecting' ? 'MENGHUBUNGKAN' : 'BELUM ADA'}
+                  <span className={`tag ${s.state === 'connected' ? 'tag-ok' : s.state === 'waiting_scan' ? 'tag-info' : s.state === 'logged_out' ? 'tag-warn' : s.state === 'disabled' ? 'tag-dim' : 'tag-dim'}`}>
+                    {s.state === 'connected' ? 'TERSAMBUUNG' : s.state === 'waiting_scan' ? 'SCAN QR' : s.state === 'logged_out' ? 'LOGOUT' : s.state === 'disabled' ? 'NONAKTIF' : s.state === 'connecting' ? 'MENGHUBUNGKAN' : 'BELUM ADA'}
                   </span>
                 </div>
                 <div className="qr-mini">
-                  {s.qr ? <img src={s.qr} alt={'QR ' + s.slot} /> : <div className="qr-empty">{s.state === 'connected' ? 'Sudah masuk ✓' : s.state === 'connecting' || s.state === 'disconnected' ? 'Menyambung...' : 'Menunggu...'}</div>}
+                  {s.qr ? <img src={s.qr} alt={'QR ' + s.slot} /> : <div className="qr-empty">{s.state === 'connected' ? 'Sudah masuk ✓' : s.state === 'disabled' ? 'Dinonaktifkan' : s.state === 'connecting' || s.state === 'disconnected' ? 'Menyambung...' : 'Menunggu...'}</div>}
                 </div>
                 {s.user && <div className="qr-user">+{String(s.user).split('@')[0].split(':')[0]}</div>}
                 {s.state === 'connected' && (s.connected_sec || 0) > 0 && (
                   <div className="qr-durasi">⏱ {s.user ? `Nomor ${String(s.user).split('@')[0].split(':')[0]} • ` : ''}Terhubung selama {formatDurasi(s.connected_sec)}</div>
                 )}
-                {(s.user || s.state === 'logged_out') && (
-                  <button className="btn btn-ghost btn-sm" disabled={busy === 'logout' + s.slot} onClick={() => logoutSlot(s.slot)}>
-                    Reset sesi ini
+                <div className="qr-actions" style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  {(s.user || s.state === 'logged_out') && s.enabled !== false && (
+                    <button className="btn btn-ghost btn-sm" disabled={busy === 'logout' + s.slot} onClick={() => logoutSlot(s.slot)}>
+                      Reset sesi
+                    </button>
+                  )}
+                  <button className={`btn btn-sm ${s.enabled === false ? 'btn primary' : 'btn-ghost'}`} disabled={busy === 'tgl' + s.slot} onClick={() => toggleSlot(s.slot, s.enabled === false)}>
+                    {s.enabled === false ? 'Aktifkan' : 'Matikan'}
                   </button>
-                )}
+                </div>
               </div>
             );
           })()}
@@ -613,6 +635,7 @@ export default function BlastPage({ showToast }) {
             </button>
             <button type="button" className={`stab ${statusTab === 'waiting' ? 'on' : ''}`} onClick={() => setStatusTab('waiting')}>
               Waiting List <b>{job.totals.pending}</b>
+              {job.totals.pending_ack > 0 && <span className="tag tag-warn" style={{ marginLeft: 6 }}>retry {job.totals.pending_ack}</span>}
             </button>
             <button type="button" className={`stab ${statusTab === 'failed' ? 'on' : ''}`} onClick={() => setStatusTab('failed')}>
               Gagal <b>{job.totals.failed}</b>
@@ -639,7 +662,7 @@ export default function BlastPage({ showToast }) {
 
               return rows.map((t, i) => (
                 <div key={i} className="incident-row">
-                  <span className={`incident-dot ${t.status === 'sent' ? 'dot-ok' : t.status === 'failed' ? 'dot-bad' : ''}`} style={t.status === 'pending' ? { background: '#64748b' } : {}} />
+                  <span className={`incident-dot ${t.status === 'sent' ? 'dot-ok' : t.status === 'failed' ? 'dot-bad' : ''}`} style={t.status === 'pending' ? { background: '#64748b' } : t.status === 'pending_ack' ? { background: '#f59e0b' } : {}} />
                   <div className="incident-main">
                     <b>+{t.num}</b>
                     <span className="incident-sub">
@@ -649,8 +672,8 @@ export default function BlastPage({ showToast }) {
                       {statusTab === 'waiting' && i === 0 && job.status === 'running' ? ' • BERIKUTNYA' : ''}
                     </span>
                   </div>
-                  <span className={`tag ${t.status === 'sent' ? 'tag-ok' : t.status === 'failed' ? 'tag-warn' : 'tag-dim'}`}>
-                    {t.status === 'pending' ? `#${(job.totals ? job.totals.sent + job.totals.failed : 0) + (i + 1)}` : t.status}
+                  <span className={`tag ${t.status === 'sent' ? 'tag-ok' : t.status === 'failed' ? 'tag-warn' : t.status === 'pending_ack' ? 'tag-warn' : 'tag-dim'}`}>
+                    {t.status === 'pending' ? `#${(job.totals ? job.totals.sent + job.totals.failed : 0) + (i + 1)}` : t.status === 'pending_ack' ? 'RETRY...' : t.status}
                   </span>
                 </div>
               ));
