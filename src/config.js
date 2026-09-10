@@ -122,6 +122,10 @@ module.exports = {
     BATCH_REST_S: 300,
     MAX_CONSEC_FAILS: 25,
     MAX_TEXT_LEN: 60000,
+    // Option A: tunggu ack server sebelum klaim "sent"; retry yang pending_ack
+    ACK_TIMEOUT_S: 25,        // detik maksimum menunggu ack server
+    ACK_MAX_RETRIES: 2,       // berapa kali diulang kalau ack tidak terima
+    ACK_RETRY_DELAY_S: 300,   // jeda sebelum retry pesan pending_ack (5 menit)
     // Files
     files: {
       uploads: path.join(DATA_DIR, 'blast', 'uploads'),
@@ -130,6 +134,7 @@ module.exports = {
       draft: path.join(DATA_DIR, 'blast', 'draft.json'),
       batches: path.join(DATA_DIR, 'blast', 'batches.json'),
       handoverFlag: path.join(DATA_DIR, 'cs', 'blast-flag.json'),
+      slotsState: path.join(DATA_DIR, 'blast', 'slots-state.json'),
     },
   },
 };

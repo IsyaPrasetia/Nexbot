@@ -21,6 +21,7 @@ const LOG_FILE = CFG.files.log;
 const DRAFT_FILE = CFG.files.draft;
 const BATCH_META_FILE = CFG.files.batches;
 const HANDOVER_FLAG_FILE = CFG.files.handoverFlag;
+const SLOTS_STATE_FILE = CFG.files.slotsState;
 
 function touchHandoverFlag() {
   try {
@@ -40,16 +41,42 @@ const MAX_TEXT_LEN = CFG.MAX_TEXT_LEN;
 const BATCH_SIZE = CFG.BATCH_SIZE || 50;
 const BATCH_REST_S = CFG.BATCH_REST_S || 300;
 
+// Option A: menunggu ack server sebelum menganggap pesan terkirim
+const ACK_TIMEOUT_MS = (CFG.ACK_TIMEOUT_S || 25) * 1000;
+const ACK_MAX_RETRIES = CFG.ACK_MAX_RETRIES || 2;
+const ACK_RETRY_DELAY_MS = (CFG.ACK_RETRY_DELAY_S || 300) * 1000;
+
 for (const dir of [UPLOAD_DIR]) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
-const RETRY_DELAYS = [5, 15, 30, 45, 60]; // detik, lalu ulang ke 5
+// Opsi B: backoff exponential naik (5s -> 10m) dan tidak loop-reset,
+// agar sesi yang bermasalah (mis. timeout 408) tidak "hammer" terus-menerus.
+const RETRY_DELAYS = [5, 15, 30, 60, 120, 240, 600];
+
+// Peta enabled per slot, persist di file agar bertahan setelah restart (tanpa restart untuk toggle saat runtime)
+let slotEnabled = {};
+function loadSlotEnabled() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(SLOTS_STATE_FILE, 'utf8'));
+    if (parsed && typeof parsed === 'object') slotEnabled = parsed;
+  } catch {}
+  for (const slot of SLOT_IDS) {
+    if (typeof slotEnabled[slot] !== 'boolean') slotEnabled[slot] = true;
+  }
+}
+function saveSlotEnabled() {
+  try {
+    fs.mkdirSync(path.dirname(SLOTS_STATE_FILE), { recursive: true });
+    fs.writeFileSync(SLOTS_STATE_FILE, JSON.stringify(slotEnabled));
+  } catch {}
+}
+loadSlotEnabled();
 
 const sockets = {};
 const states = {};
 for (const slot of SLOT_IDS) {
-  states[slot] = { qrRaw: null, state: 'disconnected', user: null, retryIdx: 0 };
+  states[slot] = { qrRaw: null, state: 'disconnected', user: null, retryIdx: 0, enabled: slotEnabled[slot] !== false };
 }
 
 let job = null;
@@ -65,6 +92,28 @@ function getState(slot) {
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+// Tunggu ack server untuk sebuah pesan yang baru dikirim.
+// Di Baileys, status pesan: PENDING(0), SERVER_ACK(1), DELIVERY_ACK(2), READ(3), PLAYED(4).
+// "Terkirim" berarti minimal server sudah menerima & memproses (status > 0).
+// Mengembalikan promise yang resolve => true jika ack terima sebelum timeout, false bila tidak.
+function waitServerAck(sock, key, timeoutMs) {
+  return new Promise((resolve) => {
+    if (!sock || !key || !key.id) return resolve(false);
+    const targetId = key.id;
+    const timer = setTimeout(() => { cleanup(); resolve(false); }, timeoutMs);
+    function handler(updates) {
+      if (!Array.isArray(updates)) return;
+      const hit = updates.find((u) => u.key && u.key.id === targetId && typeof u.status === 'number' && u.status > 0);
+      if (hit) { cleanup(); resolve(true); }
+    }
+    function cleanup() {
+      clearTimeout(timer);
+      try { sock.ev.off('messages.update', handler); } catch {}
+    }
+    try { sock.ev.on('messages.update', handler); } catch { cleanup(); resolve(false); }
+  });
 }
 
 function randInt(min, max) {
@@ -171,6 +220,11 @@ function normalizeNumber(raw) {
 
 async function connectSlot(slot) {
   const st = states[slot];
+  if (st && st.enabled === false) {
+    st.state = 'disabled';
+    st.qrRaw = null;
+    return;
+  }
   st.state = 'connecting';
   try {
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir(slot));
@@ -211,6 +265,11 @@ async function connectSlot(slot) {
         st.state = 'disconnected';
         st.user = null;
         appendLog({ event: 'disconnected', slot, code });
+        if (st.enabled === false) {
+          st.state = 'disabled';
+          st.qrRaw = null;
+          return;
+        }
         if (code === DisconnectReason.loggedOut) {
           st.state = 'logged_out';
           st.retryIdx = 0;
@@ -219,9 +278,9 @@ async function connectSlot(slot) {
             .then(() => connectSlot(slot))
             .catch(() => {});
         } else {
-          const idx = st.retryIdx % RETRY_DELAYS.length;
+          const idx = Math.min(st.retryIdx, RETRY_DELAYS.length - 1);
           const delaySec = RETRY_DELAYS[idx];
-          st.retryIdx += 1;
+          st.retryIdx = idx + 1;
           appendLog({ event: 'retry', slot, code, delay_s: delaySec, attempt: st.retryIdx });
           setTimeout(() => connectSlot(slot), delaySec * 1000);
         }
@@ -229,10 +288,15 @@ async function connectSlot(slot) {
     });
   } catch (e) {
     st.state = 'disconnected';
-    const idx = st.retryIdx % RETRY_DELAYS.length;
+    const idx = Math.min(st.retryIdx, RETRY_DELAYS.length - 1);
     const delaySec = RETRY_DELAYS[idx];
-    st.retryIdx += 1;
+    st.retryIdx = idx + 1;
     appendLog({ event: 'retry', slot, error: String(e.message || e).slice(0, 120), delay_s: delaySec, attempt: st.retryIdx });
+    if (st.enabled === false) {
+      st.state = 'disabled';
+      st.qrRaw = null;
+      return;
+    }
     setTimeout(() => connectSlot(slot), delaySec * 1000);
   }
 }
@@ -274,8 +338,23 @@ async function runEngine() {
     const randomBreakAt = randInt(10, 15); // istirahat acak tiap 10-15 pesan
 
     while (job && job.status === 'running') {
-      const target = job.targets.find((t) => t.status === 'pending');
+      // Target: pending (belum pernah dikirim) atau pending_ack yang sudah waktunya retry.
+      const target = job.targets.find((t) => {
+        if (t.status === 'pending') return true;
+        if (t.status === 'pending_ack' && t.retry_at && t.retry_at <= Date.now()) return true;
+        return false;
+      });
       if (!target) {
+        // Kalau masih ada pending_ack yang belum waktunya, tunggu sampai retry_at
+        const awaiting = job.targets.filter((t) => t.status === 'pending_ack');
+        if (awaiting.length) {
+          const nextRetry = Math.min(...awaiting.map((t) => t.retry_at || Date.now()));
+          const waitMs = Math.max(1000, nextRetry - Date.now());
+          job.next_at = Date.now() + waitMs;
+          await saveJob();
+          await sleep(waitMs);
+          continue;
+        }
         job.status = 'done';
         job.finished_at = Date.now();
         await saveJob();
@@ -298,22 +377,54 @@ async function runEngine() {
 
         let mode = 'text';
         const textToSend = addInvisibleChars(variant.text || '');
+        let sentKey = null;
         if (variant.image) {
           const buf = await fsp.readFile(path.join(UPLOAD_DIR, variant.image));
-          await sock.sendMessage(target.jid, { image: buf, caption: textToSend || undefined });
+          const msg = await sock.sendMessage(target.jid, { image: buf, caption: textToSend || undefined });
+          sentKey = msg && msg.key;
           mode = textToSend ? 'image+caption' : 'image';
         } else {
-          await sock.sendMessage(target.jid, { text: textToSend });
+          const msg = await sock.sendMessage(target.jid, { text: textToSend });
+          sentKey = msg && msg.key;
         }
-        target.status = 'sent';
-        target.ts = Date.now();
-        delete target.error;
-        target.mode = mode;
-        job.sent_count += 1;
-        job.consec_fail = 0;
-        randomBreakCounter += 1;
-        touchHandoverFlag();
-        appendLog({ event: 'sent', to: target.jid, from: target.sender_slot, variant: target.variant_index + 1, mode });
+
+        // Opsi A: tunggu ack server sebelum menganggap terkirim.
+        // Kalau ack tidak terima dalam timeout, tandai pending_ack untuk di-retry,
+        // bukan langsung "sent"/"failed" supaya dashboard jujur (pending != sent).
+        const gotAck = await waitServerAck(sock, sentKey, ACK_TIMEOUT_MS);
+        if (gotAck) {
+          target.status = 'sent';
+          target.ts = Date.now();
+          delete target.error;
+          delete target.ack_retries;
+          target.mode = mode;
+          job.sent_count += 1;
+          job.consec_fail = 0;
+          randomBreakCounter += 1;
+          touchHandoverFlag();
+          appendLog({ event: 'sent', to: target.jid, from: target.sender_slot, variant: target.variant_index + 1, mode });
+        } else {
+          target.ack_retries = (target.ack_retries || 0) + 1;
+          if (target.ack_retries > ACK_MAX_RETRIES) {
+            target.status = 'failed';
+            target.ts = Date.now();
+            target.error = `Ack server tidak terima setelah ${target.ack_retries}x kirim`;
+            job.failed_count += 1;
+            job.consec_fail += 1;
+            appendLog({ event: 'failed', to: target.jid, from: target.sender_slot, error: target.error });
+            if (job.consec_fail >= MAX_CONSEC_FAILS) {
+              job.status = 'paused';
+              job.pause_reason = `${MAX_CONSEC_FAILS} gagal beruntun - kemungkinan sesi putus/nomor diblokir. Periksa lalu tekan Lanjut.`;
+            }
+          } else {
+            // Masih pending - retry setelah jeda; bukan sent, bukan failed.
+            target.status = 'pending_ack';
+            target.retry_at = Date.now() + ACK_RETRY_DELAY_MS;
+            delete target.mode;
+            job.consec_fail = 0;
+            appendLog({ event: 'pending_ack', to: target.jid, from: target.sender_slot, attempt: target.ack_retries, retry_in_s: ACK_RETRY_DELAY_MS / 1000 });
+          }
+        }
       } catch (e) {
         target.status = 'failed';
         target.ts = Date.now();
@@ -381,13 +492,49 @@ app.get('/api/session', async (req, res) => {
         qr = await QRCode.toDataURL(st.qrRaw, { margin: 1, width: 300 });
       } catch {}
     }
-    slots.push({ slot, state: st.state, user: st.user, qr });
+    slots.push({ slot, state: st.state, user: st.user, qr, enabled: st.enabled !== false });
   }
   res.json({
     slots,
     any_connected: slots.some((s) => s.state === 'connected'),
     connected_slots: slots.filter((s) => s.state === 'connected').map((s) => s.slot)
   });
+});
+
+// Toggle enable/disable slot pengirim. Disable => berhenti minta scan & berhenti reconnect (tanpa restart).
+app.post('/api/session/enabled', async (req, res) => {
+  const slot = String((req.body || {}).slot || '');
+  const enabled = Boolean((req.body || {}).enabled);
+  if (!SLOT_IDS.includes(slot)) return res.status(400).json({ error: 'Slot tidak dikenal' });
+  const st = states[slot];
+  slotEnabled[slot] = enabled;
+  saveSlotEnabled();
+  st.enabled = enabled;
+  if (!enabled) {
+    // Matikan: tutup socket & hentikan koneksi, berhenti minta QR.
+    st.retryIdx = 0;
+    st.user = null;
+    if (sockets[slot]) {
+      try {
+        const s = sockets[slot];
+        sockets[slot] = null;
+        await s.logout();
+      } catch {}
+      try {
+        if (sockets[slot]) await sockets[slot].end();
+      } catch {}
+    }
+    sockets[slot] = null;
+    st.state = 'disabled';
+    st.qrRaw = null;
+    appendLog({ event: 'slot_disabled', slot });
+  } else {
+    st.state = 'disconnected';
+    st.qrRaw = null;
+    appendLog({ event: 'slot_enabled', slot });
+    connectSlot(slot); // langsung connect tanpa restart
+  }
+  res.json({ ok: true, slot, enabled, state: st.state });
 });
 
 app.post('/api/session/logout', async (req, res) => {
@@ -588,7 +735,9 @@ app.post('/api/job/control', async (req, res) => {
 
 function publicJob() {
   if (!job) return null;
-  const pending = job.targets.filter((t) => t.status === 'pending').length;
+  // pending_ack dihitung sebagai "pending" agar dashboard jujur: belum terkirim
+  const pending = job.targets.filter((t) => t.status === 'pending' || t.status === 'pending_ack').length;
+  const pendingAck = job.targets.filter((t) => t.status === 'pending_ack').length;
   const done = job.sent_count + job.failed_count;
   const pct = job.targets.length ? Math.round((done / job.targets.length) * 1000) / 10 : 0;
   let eta_ms = null;
@@ -601,7 +750,7 @@ function publicJob() {
 
   const sentTargets = job.targets.filter((t) => t.status === 'sent');
   const failedTargets = job.targets.filter((t) => t.status === 'failed');
-  const pendingTargets = job.targets.filter((t) => t.status === 'pending');
+  const pendingTargets = job.targets.filter((t) => t.status === 'pending' || t.status === 'pending_ack');
 
   return {
     id: job.id,
@@ -615,7 +764,7 @@ function publicJob() {
     per_sender: perSender,
     settings: job.settings,
     variants: job.variants.map((v) => ({ text: v.text || '', image: v.image })),
-    totals: { all: job.targets.length, sent: job.sent_count, failed: job.failed_count, pending, pct, eta_ms },
+    totals: { all: job.targets.length, sent: job.sent_count, failed: job.failed_count, pending, pending_ack: pendingAck, pct, eta_ms },
     lists: {
       sent: sentTargets.slice(-20).reverse(),
       waiting: pendingTargets.slice(0, 20),
@@ -646,6 +795,13 @@ loadJob().then(() => {
   }
   app.listen(PORT, '127.0.0.1', () => {
     console.log(`[BLASTER] API siap di http://127.0.0.1:${PORT}`);
-    for (const slot of SLOT_IDS) connectSlot(slot);
+    for (const slot of SLOT_IDS) {
+      if (slotEnabled[slot] !== false) {
+        connectSlot(slot);
+      } else {
+        states[slot].state = 'disabled';
+        states[slot].qrRaw = null;
+      }
+    }
   });
 });
