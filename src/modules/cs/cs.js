@@ -24,6 +24,7 @@ const lastBotReply = {};
 // Global sock registry: admin1 & admin2
 const adminSocks = {};
 const reconnectCount = {};
+const reconnectTimer = {};
 const connectedAdmins = {};
 // Timestamp (ms) kapan tiap slot mulai tersambung — untuk hitung durasi koneksi
 const connectedAt = {};
@@ -219,6 +220,10 @@ function logMenuSelection(userPhone, pilihan) {
 // 🤖 JALANKAN INSTANCE BOT UTAMA
 // =========================================================================
 async function jalankanBotAdmin(namaAdmin, isBulkOnly = false) {
+    if (adminSocks[namaAdmin]) {
+        console.log(`⏭️ Spawn ${namaAdmin} dibatalkan: socket aktif sudah ada.`);
+        return null;
+    }
     const sesDir = config.stores.sessions(namaAdmin, 'cs');
     const { state, saveCreds } = await useMultiFileAuthState(sesDir);
 
@@ -229,21 +234,26 @@ async function jalankanBotAdmin(namaAdmin, isBulkOnly = false) {
         },
         logger: pino({ level: 'silent' }),
         printQRInTerminal: false,
-        qrTimeout: 20_000
+        qrTimeout: 120_000
     });
 
     adminSocks[namaAdmin] = sock;
 
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
-        
+
+        // Abaikan event dari socket yang SUDAH DIGANTI/di-reset (stale).
+        // Mencegah socket lama menimpa QR / respawn dobel → QR gagal discan
+        // sampai bot di-restart.
+        if (adminSocks[namaAdmin] !== sock) return;
+
         if (qr) {
             const qrFile = config.stores.qr(namaAdmin, 'cs');
             QRCode.toFile(qrFile, qr, { type: 'png', width: 400 }, (err) => {
                 if (err) console.error(`❌ Gagal simpan QR ${namaAdmin}:`, err.message);
             });
             console.log(`\n📸 [QR CODE] SILAKAN SCAN UNTUK: BOT ${namaAdmin.toUpperCase()}`);
-            console.log(`⏰ QR refresh tiap ~20 detik. Segera scan QR terbaru di dashboard/terminal.`);
+            console.log(`⏰ QR refresh tiap beberapa detik. Segera scan QR terbaru di dashboard/terminal.`);
             console.log(`📁 File QR: ${qrFile}`);
             qrcode.generate(qr, { small: true });
         }
@@ -262,7 +272,11 @@ async function jalankanBotAdmin(namaAdmin, isBulkOnly = false) {
                 reconnectCount[namaAdmin] = (reconnectCount[namaAdmin] || 0) + 1;
                 const delay = 10000 + ((reconnectCount[namaAdmin] - 1) * 5000);
                 console.log(`⏳ Reconnect ${namaAdmin} dalam ${delay/1000} detik (attempt ${reconnectCount[namaAdmin]})...`);
-                setTimeout(() => { jalankanBotAdmin(namaAdmin, isBulkOnly); }, delay);
+                if (reconnectTimer[namaAdmin]) clearTimeout(reconnectTimer[namaAdmin]);
+                reconnectTimer[namaAdmin] = setTimeout(() => {
+                    reconnectTimer[namaAdmin] = null;
+                    jalankanBotAdmin(namaAdmin, isBulkOnly);
+                }, delay);
             }
         } else if (connection === 'open') {
             connectedAdmins[namaAdmin] = true;
@@ -1164,11 +1178,17 @@ setTimeout(() => {
                 const name = String(body.slot || '').trim().toLowerCase();
                 if (!/^admin\d+$/.test(name)) return res.end(JSON.stringify({ error: 'Slot harus format adminN' }));
                 try {
+                    // MATIKAN socket lama sepenuhnya + batalkan timer reconnect-nya,
+                    // supaya tidak ada socket stale yang tetap hidup & ganggu QR baru.
+                    if (reconnectTimer[name]) { clearTimeout(reconnectTimer[name]); reconnectTimer[name] = null; }
                     if (adminSocks[name]) {
-                        await adminSocks[name].end(undefined);
+                        const sokLama = adminSocks[name];
                         delete adminSocks[name];
+                        try { await sokLama.end(undefined); } catch {}
                     }
                     connectedAdmins[name] = false;
+                    delete connectedAt[name];
+                    reconnectCount[name] = 0;
                     const sesDir = config.stores.sessions(name, 'cs');
                     if (fs.existsSync(sesDir)) fs.rmSync(sesDir, { recursive: true, force: true });
                     appendLogBridge({ event: 'reset-sesi', slot: name, by: 'dashboard' });
@@ -1184,11 +1204,15 @@ setTimeout(() => {
                 const reset = [];
                 for (const s of ['admin1', 'admin2', 'admin3']) {
                     try {
+                        if (reconnectTimer[s]) { clearTimeout(reconnectTimer[s]); reconnectTimer[s] = null; }
                         if (adminSocks[s]) {
-                            await adminSocks[s].end(undefined);
+                            const sokLama = adminSocks[s];
                             delete adminSocks[s];
+                            try { await sokLama.end(undefined); } catch {}
                         }
                         connectedAdmins[s] = false;
+                        delete connectedAt[s];
+                        reconnectCount[s] = 0;
                         const sesDir = config.stores.sessions(s, 'cs');
                         if (fs.existsSync(sesDir)) fs.rmSync(sesDir, { recursive: true, force: true });
                         reset.push(s);
